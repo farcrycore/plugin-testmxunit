@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<snippet filetemplate="false" extension="cfm">
+<name>new test error path function</name>
+<help></help>
+<starttext><![CDATA[<cffunction name="testCauseAFailure" returntype="void" hint="tests error path">		
+	<cftry>			
+		<!--- do something here to cause an error --->
+		
+]]></starttext>
+<endtext><![CDATA[
+		<cfset fail("Error path test... should not have gotten here")>
+	<cfcatch type="mxunit.exception.AssertionFailedError">
+		<cfrethrow>
+	</cfcatch>
+	<cfcatch type="any"></cfcatch>
+	</cftry>
+</cffunction>]]></endtext>
+</snippet>

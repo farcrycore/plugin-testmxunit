@@ -1,5 +1,5 @@
 
-<cfcomponent displayname="MxunitInstallVerificationTest" extends="mxunit.framework.TestCase">
+<cfcomponent displayname="MxunitInstallVerificationTest" extends="farcry.plugins.testMXUnit.www.mxunit.framework.TestCase">
 
 <cffunction name="testThis" >
   <cfset assertEquals("this","this") />

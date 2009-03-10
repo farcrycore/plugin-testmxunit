@@ -122,7 +122,11 @@
 					
 					##suiteprogressbar { margin:15px 5px; border:1px ##CCCCCC solid; }
 						##progress { height:20px; width:0px; margin:0px; color:##FFFFFF; background:yellow url(#application.url.webroot#/mxunit/images/progress.png); overflow:hidden; white-space:nowrap; }
+					
 					##suitecompleted { margin:15px 5px; border:1px ##CCCCCC solid; padding:0; text-align:center; font-family:helvetica,arial; font-weight:bold; }
+						##suitecompleted .Error { color:##0000A0; }
+						##suitecompleted .Failed { color:##CC2504; }
+						##suitecompleted .Passed { color:##00BF0D; }
 				</style>
 				
 			</head>
@@ -149,14 +153,21 @@
 				
 				jQ(function(){
 					var testindex = 0;
+					var results = { error:0, passed:0, failed:0 };
 					
 					function displayTestResult(result) {
 						jQ("##"+tests[testindex].id+"_"+tests[testindex].testmethod).html(result);
+						
+						if (result.match("testresult Error"))
+							results.error++;
+						else if (result.match("testresult Passed"))
+							results.passed++;
+						else if (result.match("testresult Failed"))
+							results.failed++;
+						
 						testindex++;
-						//jQ(".progresstext").html(testindex.toString()+" of #qTests.recordcount# completed");
 						jQ("##progress").animate({ width:(testindex/#qTests.recordcount#*100).toString()+"%" },500,"linear");
-						//jQ("##progress").width((testindex/#qTests.recordcount#*100).toString()+"%");
-						if (testindex<tests.length) getTestResult(testindex); else jQ("##suiteprogressbar").replaceWith("<div id='suitecompleted'>All tests have been completed.</div>");
+						if (testindex<tests.length) getTestResult(testindex); else jQ("##suiteprogressbar").replaceWith("<div id='suitecompleted'>All tests have been completed ("+(results.error ? " <span class='Error'>errors: <span class='count'>"+results.error+"</span></span> " : "")+(results.failed ? " <span class='Failed'>failures: <span class='count'>"+results.failed+"</span> </span>" : "")+(results.passed ? " <span class='Passed'>passes: <span class='count'>"+results.passed+"</span></span> " : "")+")</div>");
 					};
 					
 					function getTestResult(index) {

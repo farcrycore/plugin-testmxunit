@@ -28,11 +28,14 @@
 			<cfquery dbtype="query" name="qTests">
 				select		name,location,path,hint
 				from		qTests
+				where		name not in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#valuelist(qTheseTests.name)#" />)
 				
 				UNION
 				
 				select		name,location,path,hint
 				from		qTheseTests
+				
+				order by	location asc,name asc
 			</cfquery>
 		</cfloop>
 		

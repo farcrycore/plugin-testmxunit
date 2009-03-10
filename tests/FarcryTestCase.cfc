@@ -5,6 +5,7 @@
 		<cfset this.aPinObjects = arraynew(1) />
 		<cfset this.aPinUsers = arraynew(1) />
 		<cfset this.aPinScopes = arraynew(1) />
+		<cfset this.aPinCategories = arraynew(1) />
 	</cffunction>
 
 	<cffunction name="tearDown" returntype="void" access="public">
@@ -17,6 +18,9 @@
 		
 		<!--- Remove dirty scope variables --->
 		<cfset revertScopes() />
+		
+		<!--- Remove dirty categories --->
+		<cfset revertCategories() />
 	</cffunction>
 	
 	
@@ -25,13 +29,193 @@
 		
 		<cfset var o = createobject("component",application.stCOAPI[arguments.typename].packagepath) />
 		<cfset var stObj = duplicate(arguments) />
+		<cfset var lCategories = "" />
+		<cfset var oCategory = createobject("component","farcry.core.packages.farcry.category") />
 		
 		<cfparam name="stObj.objectid" default="#createuuid()#" />
 		
+		<cfif structkeyexists(arguments,"categories")>
+			<cfset lCategories = arguments.categories />
+			<cfset structdelete(arguments,"categories") />
+		</cfif>
+		
 		<cfset pinObjects(typename=arguments.typename,objectid=stObj.objectid) />
 		<cfset o.setData(stProperties=stObj) />
+		<cfset oCategory.assignCategories(stObj.objectid,lCategories) />
 		
 		<cfreturn stObj />
+	</cffunction>
+	
+	<cffunction name="createTemporaryCategory" access="package" returntype="struct" output="false" hint="Creates the specified category and adds it the the pinned list">
+		<cfargument name="alias" type="string" required="true" hint="" />
+		<cfargument name="parentid" type="uuid" required="false" default="#application.catid.root#" hint="The parent of the new category" />
+		<cfargument name="categoryid" type="string" required="false" hint="" />
+		<cfargument name="categorylabel" type="string" required="false" hint="" />
+		
+		<cfset var oCategory = createobject("component","farcry.core.packages.farcry.category") />
+		
+		<cfparam name="arguments.categoryid" default="#createuuid()#" />
+		<cfparam name="argumetns.categorylabel" default="#arguments.alias#" />
+		
+		<cfset pinCategories(arguments.categoryid) />
+		<cfset oCategory.addCategory(arguments.categoryid,arguments.categorylabel,arguments.parentid) />
+		<cfset oCategory.setAlias(arguments.categoryid,arguments.alias) />
+		
+		<cfreturn duplicate(arguments) />
+	</cffunction>
+	
+	
+	<cffunction name="getCategory" access="package" returntype="struct" output="false" hint="Returns the specified category">
+		<cfargument name="category" type="string" required="true" hint="The category id or alias" />
+		
+		<cfset var qCategory = structnew() />
+		<cfset var stCat = structnew() />
+		<cfset var oTree = createobject("component","farcry.core.packages.farcry.tree") />
+		
+		<cfif isvalid("uuid",arguments.category)>
+			<cfquery datasource="#application.dsn#" name="qCategory">
+				select		*
+				from		#application.dbowner#categories
+				where		categoryid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.category#" />
+			</cfquery>
+		<cfelse><!--- Retrieve the category by alias --->
+			<cfquery datasource="#application.dsn#" name="qCategory">
+				select		*
+				from		#application.dbowner#categories
+				where		alias=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.category#" />
+			</cfquery>
+		</cfif>
+		
+		<cfif qCategory.recordcount>
+			<cfset stCat.categoryid = qCategory.categoryid />
+			<cfset stCat.alias = qCategory.alias />
+			<cfset stCat.categoryLabel = qCategory.categoryLabel />
+			<cfset stCat.parentid = oTree.getParentID(qCategory.categoryid) />
+		</cfif>
+		
+		<cfreturn stCat />
+	</cffunction>
+	
+	<cffunction name="getCategoryReferences" access="package" returntype="string" output="false" hint="Returns a list of references to the category">
+		<cfargument name="categoryid" type="uuid" required="true" hint="The categoryid" />
+		
+		<cfset var qRefs = querynew("empty") />
+		
+		<cfquery datasource="#application.dsn#" name="qRefs">
+			select	objectid
+			from	#application.dbowner#refCategories
+			where	categoryid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.categoryid#" />
+		</cfquery>
+		
+		<cfreturn valuelist(qRefs.objectid) />
+	</cffunction>
+	
+	<cffunction name="pinCategories" access="package" returntype="void" output="false" hint="Adds categories to the dirty list, to be reverted on tearDown">
+		<cfargument name="category" type="string" required="true" hint="A list of objectids or aliases" />
+		
+		<cfset var thiscategory = "" />
+		<cfset var stPin = structnew() />
+		
+		<cfloop list="#arguments.category#" index="thiscategory">
+			<cfset stPin = structnew() />
+			<cfset stPin.category = thiscategory />
+			
+			<!--- Add category information --->
+			<cfset stPin.stPre = getCategory(thiscategory) />
+			
+			<!--- Add reference information --->
+			<cfif not structisempty(stPin.stPre)>
+				<cfset stPin.lPreRefs = getCategoryReferences(stPin.stPre.categoryid) />
+			</cfif>
+			
+			<!--- Add to pinned list --->
+			<cfset arrayappend(this.aPinCategories,stPin) />
+		</cfloop>
+	</cffunction>
+	
+	<cffunction name="revertCategory" access="package" returntype="void" output="false" hint="Reverts a specific category and its references">
+		<cfargument name="stPin" type="struct" required="true" hint="The previous category values" />
+		
+		<cfset var stCurrent = getCategory(stPin.category) />
+		<cfset var lReferences = "" />
+		<cfset var thisreference = "" />
+		<cfset var oCategory = createobject("component","farcry.core.packages.farcry.category") />
+		
+		<cfif not structisempty(stCurrent)>
+			<cfset lReferences = getCategoryReferences(stCurrent.categoryid) />
+		</cfif>
+		
+		<cfif structisempty(arguments.stPin.stPre) and not structisempty(stCurrent)><!--- CASE 1: Delete the category --->
+			
+			<cfset oCategory.deleteCategory(stCurrent.categoryid,application.dsn) />
+			
+		<cfelseif not structisempty(arguments.stPin.stPre) and structisempty(stCurrent)><!--- CASE 2: Re-add this category --->
+			
+			<cfset oCategory.addCategory(arguments.stPin.stPre.categoryid,arguments.stPin.stPre.categorylabel,arguments.stPin.stPre.parentid) />
+			<cfset oCategory.setAlias(arguments.stPin.stPre.categoryid,arguments.stPin.stPre.alias) />
+					
+			<cfloop list="#arguments.stPin.lReferences#" index="thisreference">
+				<cfquery datasource="#application.dsn#">
+					insert 
+					into 	#application.dbowner#refCategories
+							(categoryid,objectid)
+					values	(
+								<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stPin.stPre.categoryid#" />,
+								<cfqueryparam cfsqltype="cf_sql_varchar" value="#thisreference#" />
+							)
+				</cfquery>
+			</cfloop>
+			
+		<cfelse><!--- CASE 3: Revert this category --->
+			
+			<!--- Update category --->
+			<cfquery datasource="#application.dsn#">
+				update	#application.dbowner#categories
+				set		alias=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stPin.alias#" />,
+						categorylabel=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stPin.categorylabel#" />
+				where	categoryid=categoryid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stPin.categoryid#" />
+			</cfquery>
+			
+			<!--- Check parent --->
+			<cfif arguments.stPin.stPre.parentid neq stCurrent.parentid>
+				<cfset oCategory.moveCategory(arguments.stPin.stPre.categoryid,arguments.stPin.stPre.parentid) />
+			</cfif>
+			
+			<!--- Update references --->
+			<cfloop list="#arguments.stPin.lReferences#" index="thisreference">
+				<cfif not listcontains(lReferences,thisreference)><!--- Re-add reference --->
+					<cfquery datasource="#application.dsn#">
+						insert 
+						into 	#application.dbowner#refCategories
+								(categoryid,objectid)
+						values	(
+									<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stPin.stPre.categoryid#" />,
+									<cfqueryparam cfsqltype="cf_sql_varchar" value="#thisreference#" />
+								)
+					</cfquery>
+				</cfif>
+			</cfloop>
+			<cfloop list="#lReferences#" index="thisreference">
+				<cfif not listcontains(arguments.stPin.lReferences,thisreference)><!--- Delete reference --->
+					<cfquery datasource="#application.dsn#">
+						delete 
+						from 	#application.dbowner#refCategories
+						where 	categoryid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stPin.stPre.categoryid#" />
+								AND objectid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#thisreference#" />
+					</cfquery>
+				</cfif>
+			</cfloop>
+		</cfif>
+	</cffunction>
+	
+	<cffunction name="revertCategories" access="package" returntype="void" output="false" hint="Reverts all pinned categories and their references">
+		<cfset var i = 0 />
+		<cfset var stPin = structnew() />
+		<cfset var qCategory = querynew("empty") />
+		
+		<cfloop from="1" to="#arraylen(this.aPinCategories)#" index="i">
+			<cfset revertCategory(this.aPinCategories[i]) />
+		</cfloop>
 	</cffunction>
 	
 	

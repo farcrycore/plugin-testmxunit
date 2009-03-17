@@ -464,7 +464,24 @@
 							AND datetimecreated><cfqueryparam cfsqltype="cf_sql_timestamp" value="#dateadd('s',0-arguments.timeframe,now())#" />
 						</cfif>
 						<cfloop collection="#arguments#" item="thisproperty">
-							<cfif not listcontainsnocase("typename,timeframe,message",thisproperty)>
+							<cfif isarray(arguments[thisproperty])>
+								<cfif arraylen(arguments[thisproperty])>
+									AND objectid in (<!--- Values in the array are all in the database --->
+										select		parentid
+										from		#application.dbowner##arguments.typename#_#thisproperty#
+										where		data in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#arraytolist(arguments[thisproperty])#" />)
+										group by	parentid
+										having 		count(parentid)=<cfqueryparam cfsqltype="cf_sql_integer" value="#arraylen(arguments[thisproperty])#" />
+									)
+								</cfif>
+								AND objectid not in (<!--- Values in the database are all in the array --->
+									select		parentid
+									from		#application.dbowner##arguments.typename#_#thisproperty#
+									where		data not in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#arraytolist(arguments[thisproperty])#" />)
+									group by	parentid
+									having 		count(parentid)>0
+								)
+							<cfelseif not listcontainsnocase("typename,timeframe,message",thisproperty)>
 								AND #thisproperty#=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments[thisproperty]#" />
 							</cfif>
 						</cfloop>

@@ -166,7 +166,7 @@
 							results.failed++;
 						
 						testindex++;
-						jQ("##progress").animate({ width:(testindex/#qTests.recordcount#*100).toString()+"%" },500,"linear");
+						jQ("##progress").animate({ width:(testindex/#qTests.recordcount#*100).toString()+"%" },250,"linear");
 						if (testindex<tests.length) getTestResult(testindex); else jQ("##suiteprogressbar").replaceWith("<div id='suitecompleted'>All tests have been completed ("+(results.error ? " <span class='Error'>errors: <span class='count'>"+results.error+"</span></span> " : "")+(results.failed ? " <span class='Failed'>failures: <span class='count'>"+results.failed+"</span> </span>" : "")+(results.passed ? " <span class='Passed'>passes: <span class='count'>"+results.passed+"</span></span> " : "")+")</div>");
 					};
 					

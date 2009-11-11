@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<webtop>
+	<section mergeType="merge" id="admin">
+		<subsection id="testingsubsection" sequence="50" label="Testing">
+			<menu id="testMXUnit" sequence="10" label="Unit Testing">
+				<menuitem id="testMXUnitRunTests" sequence="10" label="Run Tests" link="/admin/customadmin.cfm?module=runtests.cfm&amp;plugin=testMXUnit" />
+				<menuitem id="testMXUnitConfigureTests" sequence="20" label="Configure Tests" link="/admin/customadmin.cfm?module=configuretests.cfm&amp;plugin=testMXUnit" />
+			</menu>
+		</subsection>
+	</section>
+</webtop>

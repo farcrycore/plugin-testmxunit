@@ -157,7 +157,8 @@
 						</div>
 			</cfoutput>
 			
-			<skin:htmlHead library="jqueryjs" />
+			<skin:loadJS id="jquery" />
+			
 			<skin:htmlHead>
 				<cfoutput>
 					<script type="text/javascript">
@@ -172,12 +173,12 @@
 							});
 						</cfloop>
 						
-						jQ(function(){
+						$j(function(){
 							var testindex = 0;
 							var results = { error:0, passed:0, failed:0 };
 							
 							function displayTestResult(result) {
-								jQ("##"+tests[testindex].id+"_"+tests[testindex].testmethod).html(result);
+								$j("##"+tests[testindex].id+"_"+tests[testindex].testmethod).html(result);
 								
 								if (result.match("testresult Error"))
 									results.error++;
@@ -187,13 +188,13 @@
 									results.failed++;
 								
 								testindex++;
-								jQ("##progress").animate({ width:(testindex/#qTests.recordcount#*100).toString()+"%" },250,"linear");
+								$j("##progress").animate({ width:(testindex/#qTests.recordcount#*100).toString()+"%" },250,"linear");
 								if (testindex<tests.length) getTestResult(testindex); else jQ("##suiteprogressbar").replaceWith("<div id='suitecompleted'>All tests have been completed ("+(results.error ? " <span class='Error'>errors: <span class='count'>"+results.error+"</span></span> " : "")+(results.failed ? " <span class='Failed'>failures: <span class='count'>"+results.failed+"</span> </span>" : "")+(results.passed ? " <span class='Passed'>passes: <span class='count'>"+results.passed+"</span></span> " : "")+")</div>");
 							};
 							
 							function getTestResult(index) {
 								testindex = index;
-								jQ.ajax({
+								$j.ajax({
 									success:displayTestResult,
 									url:'#cgi.SCRIPT_NAME#?#cgi.QUERY_STRING#&suite='+tests[index].componentpath+'&test='+tests[index].testmethod
 								});

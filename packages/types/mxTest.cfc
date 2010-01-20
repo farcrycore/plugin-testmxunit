@@ -39,13 +39,14 @@
 			</cfquery>
 		</cfloop>
 		
-		<skin:htmlHead library="jqueryjs" />
+		<!--- <skin:htmlHead library="jqueryjs" /> --->
+		<skin:loadJS id="jquery" />
 		
 		<cfsavecontent variable="html">
 			<cfoutput>
 				<script type="text/javascript">
 					function selectLocations(location,select) {
-						jQ('input.location'+location).each(function(i){
+						$j('input.location'+location).each(function(i){
 							this[0].checked = select;
 						});
 					};

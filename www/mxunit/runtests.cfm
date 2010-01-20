@@ -85,7 +85,7 @@
 					<div class="componentname"><a title="#qTests.componenthint#">#qTests.componentname#</a></div>
 					<div class="testname"><a title="#qTests.testhint#">#qTests.testname#</a></div>
 					<div class="testtime"><cfif qResults.time lt 500>#qResults.time#ms<cfelseif qResults.time lt 61000>#numberformat(qResults.time/1000,"0.9")#s<cfelse>#round(qResults.time/60000)#:#round((qResults.time-60000)/1000)#min</cfif></div>
-					<div class="moredetail"><cfif listcontainsnocase("Failed,Error",qResults.teststatus)><a href="##" onclick="jQ('###qTests.id#_#qTests.testmethod# .detail').toggle();return false;"></cfif>#qResults.teststatus#<cfif listcontainsnocase("Failed,Error",qResults.teststatus)> (more detail)</a></cfif></div>
+					<div class="moredetail"><cfif listcontainsnocase("Failed,Error",qResults.teststatus)><a href="##" onclick="$j('###qTests.id#_#qTests.testmethod# .detail').toggle();return false;"></cfif>#qResults.teststatus#<cfif listcontainsnocase("Failed,Error",qResults.teststatus)> (more detail)</a></cfif></div>
 					<br class="clearer" />
 					<div class="detail" id="result#qResults.currentrow#">#qResults.error#<cfdump var="#qResults.debug#"></div>
 				</div>
@@ -189,7 +189,7 @@
 								
 								testindex++;
 								$j("##progress").animate({ width:(testindex/#qTests.recordcount#*100).toString()+"%" },250,"linear");
-								if (testindex<tests.length) getTestResult(testindex); else jQ("##suiteprogressbar").replaceWith("<div id='suitecompleted'>All tests have been completed ("+(results.error ? " <span class='Error'>errors: <span class='count'>"+results.error+"</span></span> " : "")+(results.failed ? " <span class='Failed'>failures: <span class='count'>"+results.failed+"</span> </span>" : "")+(results.passed ? " <span class='Passed'>passes: <span class='count'>"+results.passed+"</span></span> " : "")+")</div>");
+								if (testindex<tests.length) getTestResult(testindex); else $j("##suiteprogressbar").replaceWith("<div id='suitecompleted'>All tests have been completed ("+(results.error ? " <span class='Error'>errors: <span class='count'>"+results.error+"</span></span> " : "")+(results.failed ? " <span class='Failed'>failures: <span class='count'>"+results.failed+"</span> </span>" : "")+(results.passed ? " <span class='Passed'>passes: <span class='count'>"+results.passed+"</span></span> " : "")+")</div>");
 							};
 							
 							function getTestResult(index) {

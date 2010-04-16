@@ -6,7 +6,9 @@
 	<cflocation url="#cgi.script_name#?#replacenocase(cgi.query_string,'deploy=true','')#" />
 </cfif>
 
-<cfif application.factory.oAlterType.isCFCDeployed(typename="mxTest")>
+<cfset oAltertype = createobject("component","farcry.core.packages.farcry.alterType") />
+
+<cfif oAltertype.isCFCDeployed(typename="mxTest")>
 	<cfinclude template="/farcry/plugins/testMXUnit/www/mxunit/runtests.cfm" />
 <cfelse>
 	<admin:header />

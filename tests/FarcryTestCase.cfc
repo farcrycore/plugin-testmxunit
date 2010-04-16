@@ -1,4 +1,4 @@
-<cfcomponent hint="SSFS utility functions" extends="mxunit.framework.TestCase" output="false" bAbstract="true">
+<cfcomponent hint="Specialised test component for FarCry tests" extends="mxunit.framework.TestCase" output="false" bAbstract="true">
 	
 	<cffunction name="setUp" returntype="void" access="public">
 	

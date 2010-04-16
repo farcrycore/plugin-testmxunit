@@ -3,6 +3,7 @@
 
 <cfimport taglib="/farcry/core/tags/admin" prefix="admin" />
 <cfimport taglib="/farcry/core/tags/formtools" prefix="ft" />
+<cfimport taglib="/farcry/core/tags/admin" prefix="admin" />
 
 <ft:processform action="Save Configuration">
 	<ft:processformobjects typename="mxTest" />
@@ -11,7 +12,6 @@
 
 <admin:header />
 
-<cfimport taglib="/farcry/core/tags/admin" prefix="admin" />
 
 <!--- Deploy type if it has been requested --->
 <cfif structkeyexists(url,"deploy") and url.deploy>
@@ -19,7 +19,9 @@
 	<cflocation url="#cgi.script_name#?#replacenocase(cgi.query_string,'deploy=true','')#" />
 </cfif>
 
-<cfif application.factory.oAlterType.isCFCDeployed(typename="mxTest")>
+<cfset oAltertype = createobject("component","farcry.core.packages.farcry.alterType") />
+
+<cfif oAltertype.isCFCDeployed(typename="mxTest")>
 	<ft:form>
 		<cfoutput><h1>Configure Automatic Tests</h1></cfoutput>
 		<cfset oMXUnit = createobject("component",application.stCOAPI.mxTest.packagepath) />

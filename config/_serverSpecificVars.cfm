@@ -2,7 +2,7 @@
 <cfsetting enablecfoutputonly="yes">
 
 <cftry>
-	<cfset application.stPlugins.textMXUnit.seleniumServer = createObject("java", "org.openqa.selenium.server.SeleniumServer").init() />
+	<cfset application.stPlugins.textMXUnit.seleniumServer = createObject("java", "org.openqa.selenium.server.SeleniumServer").init(application.config.testing.seleniumport) />
 	<cfset application.stPlugins.textMXUnit.seleniumServer.start() />
 	
 	<cfcatch></cfcatch>

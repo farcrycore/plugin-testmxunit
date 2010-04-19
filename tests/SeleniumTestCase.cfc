@@ -1,10 +1,9 @@
 <cfcomponent hint="Selenium tests" extends="FarcryTestCase" output="false" bAbstract="true">
 	
 	<cffunction name="setUp" returntype="void" access="public">
-		<cfargument name="browser" type="string" required="false" default="*firefox" />
 		<cfargument name="baseurl" type="string" required="false" default="http://www.google.com.au/" />
 		
-		<cfset this.selenium = createobject("java","com.thoughtworks.selenium.DefaultSelenium").init("localhost", 4444, arguments.browser, arguments.baseurl) />
+		<cfset this.selenium = createobject("java","com.thoughtworks.selenium.DefaultSelenium").init("localhost", application.config.testing.seleniumport, application.config.testing.seleniumbrowser, arguments.baseurl) />
 		<cfset this.selenium.start() />
 		<cfset this.thread = CreateObject("java", "java.lang.Thread") />
 		

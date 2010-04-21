@@ -22,44 +22,107 @@
 		
 		<cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
 		
-		<cfloop list="core,#application.plugins#,project" index="location">
-			<cfset qTheseTests = getTests(location) />
-			
-			<cfquery dbtype="query" name="qTests">
-				select		name,location,path,hint
-				from		qTests
-				where		name not in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#valuelist(qTheseTests.name)#" />)
-				
-				UNION
-				
-				select		name,location,path,hint
-				from		qTheseTests
-				
-				order by	location asc,name asc
-			</cfquery>
-		</cfloop>
+		<cfset qTests = getTests() />
 		
 		<skin:htmlHead library="jqueryjs" />
 		
 		<cfsavecontent variable="html">
 			<cfoutput>
 				<script type="text/javascript">
-					function selectLocations(location,select) {
-						jQ('input.location'+location).each(function(i){
-							this[0].checked = select;
+					function selectTests(selected,location,id) {
+						id = id || '';
+						jQ('input[class^=location'+location+id+']').each(function(i){
+							this.checked = selected;
 						});
+						
+						if (id==''){
+							// location and test case info work the same way: set to all or none
+							jQ('a[class^=location'+location+'][class$=info]').each(function(i){
+								var cur = jQ(this).html().split("/");
+								if (selected) cur[0] = parseInt(cur[1]); else cur[0] = 0;
+								jQ(this).html(''+cur[0]+'/'+cur[1]);
+							});
+						}
+						else {
+							// testcase
+							var curtc = jQ('a.location'+location+id+'info').html().split("/");
+							if (selected) curtc[0] = parseInt(curtc[1]); else curtc[0] = 0;
+							jQ('a.location'+location+id+'info').html(''+curtc[0]+'/'+curtc[1]);
+							
+							// location
+							var $alltc = jQ('input[name=#arguments.fieldname#][class^=location'+location+']');
+							var $selectedtc = jQ('input:checked[name=#arguments.fieldname#][class^=location'+location+']:checked');
+							jQ('a.location'+location+'info').html(''+$selectedtc.length+'/'+$alltc.length);
+						}
+						
+					};
+					function setSelectedLocations(location,total,selected){
+						jQ('a.location'+location+'info').html(''+selected+'/'+total);
+					};
+					function setSelectedTestCases(location,id,total,selected){
+						jQ('a.location'+location+id+'info').html(''+selected+'/'+total);
+					};
+					function updateSelectedInfo(selected,location,id){
+						// location
+						var cur = jQ('a.location'+location+'info').html().split("/");
+						if (selected) cur[0] = parseInt(cur[0]) + 1; else cur[0] = parseInt(cur[0]) - 1;
+						jQ('a.location'+location+'info').html(''+cur[0]+'/'+cur[1]);
+						
+						// testcase
+						var cur = jQ('a.location'+location+id+'info').html().split("/");
+						if (selected) cur[0] = parseInt(cur[0]) + 1; else cur[0] = parseInt(cur[0]) - 1;
+						jQ('a.location'+location+id+'info').html(''+cur[0]+'/'+cur[1]);
 					};
 				</script>
 			</cfoutput>
 			<cfoutput query="qTests" group="location">
-				<label class="testlocation" style="font-weight:bold;text-align:left;"><input type="checkbox" name="selectall" id="all#qTests.location#" onclick="selectLocations('#qTests.location#',this.checked);" /> #ucase(qTests.location)#</label><br class="clearer" />
-				<div id="tests#qTests.location#">
-					<cfoutput>
-						<label class="testcomponent" style="margin-left:10px;text-align:left;"><input type="checkbox" name="#arguments.fieldname#" class="location#qTests.location#" value="#qTests.path#"<cfif listcontains(arguments.stMetadata.value,qTests.path)> checked="true"</cfif> /> #qTests.name[qTests.currentrow]#</label>
-						<cfif len(qTests.hint)>
-							<span class="hint">#qTests.hint#</span>
-						</cfif><br class="clearer" />
+				<cfset locationtotal = 0 />
+				<cfset locationselected = 0 />
+				
+				<label class="testlocation" style="font-weight:bold;text-align:left;">
+					<input type="checkbox" name="selectlocation" id="all#qTests.location#" onclick="selectTests(this.checked,'#qTests.location#');" />
+					#ucase(qTests.location)# 
+					<a href="##" class="location#qTests.location#info" onclick="jQ('##location#qTests.location#').toggle();return false">0/0</a>
+				</label>
+				
+				<div id="location#qTests.location#" class="group" style="display:none;"><br class="clearer" />
+					<cfoutput group="componentpath">
+						<cfset testcasetotal = 0 />
+						<cfset testcaseselected = 0 />
+						
+						<label class="testcomponent" style="margin-left:1.5em;text-align:left;">
+							<input type="checkbox" name="selecttestcase" class="location#qTests.location#" value="#qTests.componentpath#" onclick="selectTests(this.checked,'#qTests.location#','#qTests.id#');" />
+							#qTests.componentname[qTests.currentrow]#
+							<a href="##" title="#qTests.componenthint#" class="location#qTests.location##qTests.id#info" onclick="jQ('##location#qTests.location##qTests.id#').toggle();return false">0/0</a>
+						</label>
+						
+						<div id="location#qTests.location##qTests.id#" class="group" style="display:none;"><br class="clearer" />
+							<cfoutput>
+								<cfif listcontains(arguments.stMetadata.value,"#qTests.componentpath#.#qTests.testmethod#")>
+									<cfset testcasetotal = testcasetotal + 1 />
+									<cfset testcaseselected = testcaseselected + 1 />
+									<cfset locationtotal = locationtotal + 1 />
+									<cfset locationselected = locationselected + 1 />
+								<cfelse>
+									<cfset testcasetotal = testcasetotal + 1 />
+									<cfset locationtotal = locationtotal + 1 />
+								</cfif>
+								
+								<label class="test" style="margin-left:3em;text-align:left;">
+									<input type="checkbox" name="#arguments.fieldname#" class="location#qTests.location##qTests.id#" value="#qTests.componentpath#.#qTests.testmethod#"<cfif listcontains(arguments.stMetadata.value,"#qTests.componentpath#.#qTests.testmethod#")> checked="true"</cfif> onclick="updateSelectedInfo(this.checked,'#qTests.location#','#qTests.id#');" />
+									#qTests.testname[qTests.currentrow]#
+								</label>
+								
+								<cfif len(qTests.testhint)>
+									<span class="hint">#qTests.testhint#</span>
+								</cfif><br class="clearer" />
+							</cfoutput>
+							
+							<script type="text/javascript">setSelectedTestCases('#qTests.location#','#qTests.id#',#testcasetotal#,#testcaseselected#);</script>
+						</div><br class="clearer" />
 					</cfoutput>
+					
+					<script type="text/javascript">setSelectedLocations('#qTests.location#',#locationtotal#,#locationselected#);</script>
 				</div><br class="clearer" />
 			</cfoutput>
 		</cfsavecontent>
@@ -68,10 +131,70 @@
 	</cffunction>
 	
 	<cffunction name="getTests" returntype="query" output="false" access="public" hint="Returns all the tests for the specified location">
+		<cfset var location = "" />
+		<cfset var qTests = querynew("id,location,componentpath,componentname,componenthint,testmethod,testname,testhint") />
+		<cfset var oTest = "" />
+		<cfset var stMD = structnew() />
+		<cfset var componentname = "" />
+		<cfset var componenthint = "" />
+		<cfset var testtitle = "" />
+		<cfset var testhint = "" />
+		<cfset var testssofar = "" />
+		
+		<cfloop list="core,#application.plugins#,project" index="location">
+			<cfset qTestCases = getTestCases(location) />
+			
+			<cfloop query="qTestCases">
+				<cfset oTest = createobject("component",qTestCases.path) />
+				<cfset stMD = getMetadata(oTest) />
+				
+				<cfif structkeyexists(stMD,"displayname")>
+					<cfset componentname = stMD.displayname />
+				<cfelse>
+					<cfset componentname = listlast(stMD.fullname,".") />
+				</cfif>
+				
+				<cfif structkeyexists(stMD,"hint")>
+					<cfset componenthint = stMD.hint />
+				<cfelse>
+					<cfset componenthint = "" />
+				</cfif>
+				
+				<cfloop list="#arraytolist(oTest.getRunnableMethods())#" index="thistest">
+					<cfset testtitle = thistest />
+					<cfset testhint = "" />
+					<cfloop from="1" to="#arraylen(stMD.functions)#" index="i">
+						<cfif stMD.functions[i].name eq thistest>
+							<cfif structkeyexists(stMD.functions[i],"displayname")>
+								<cfset testtitle = stMD.functions[i].displayname />
+							</cfif>
+							<cfif structkeyexists(stMD.functions[i],"hint")>
+								<cfset testhint = stMD.functions[i].hint />
+							</cfif>
+						</cfif>
+					</cfloop>
+					
+					<cfset queryaddrow(qTests) />
+					<cfset querysetcell(qTests,"id",replace(qTestCases.path,".","","ALL")) />
+					<cfset querysetcell(qTests,"location",location) />
+					<cfset querysetcell(qTests,"componentpath",qTestCases.path) />
+					<cfset querysetcell(qTests,"componentname",componentname) />
+					<cfset querysetcell(qTests,"componenthint",componenthint) />
+					<cfset querysetcell(qTests,"testmethod",thistest) />
+					<cfset querysetcell(qTests,"testname",testtitle) />
+					<cfset querysetcell(qTests,"testhint",testhint) />
+				</cfloop>
+			</cfloop>
+		</cfloop>
+		
+		<cfreturn qTests />
+	</cffunction>
+	
+	<cffunction name="getTestCases" returntype="query" output="false" access="public" hint="Returns all the tests for the specified location">
 		<cfargument name="location" type="string" required="true" hint="The location to search (core | pluginname | project)" />
 		
 		<cfset var qFiles = querynew("empty") />
-		<cfset var qTests = querynew("name,location,path,hint","varchar,varchar,varchar,varchar") />
+		<cfset var qTests = querynew("location,path","varchar,varchar") />
 		<cfset var stMD = structnew() />
 		<cfset var packagepath = "" />
 		
@@ -97,16 +220,8 @@
 			
 			<cfif not structkeyexists(stMD,"bAbstract") or not stMD.bAbstract>
 				<cfset queryaddrow(qTests) />
-				<cfif structkeyexists(stMD,"displayname")>
-					<cfset querysetcell(qTests,"name",stMD.displayname) />
-				<cfelse>
-					<cfset querysetcell(qTests,"name",listlast(stMD.fullname,".")) />
-				</cfif>
 				<cfset querysetcell(qTests,"location",arguments.location) />
 				<cfset querysetcell(qTests,"path","#packagepath##listfirst(qFiles.name,'.')#") />
-				<cfif structkeyexists(stMD,"hint")>
-					<cfset querysetcell(qTests,"hint",stMD.hint) />
-				</cfif>
 			</cfif>
 		</cfloop>
 		

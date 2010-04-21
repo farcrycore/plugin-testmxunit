@@ -2,8 +2,8 @@
 	
 	<cffunction name="setUp" returntype="void" access="public">
 		<cfargument name="host" type="string" required="false" default="localhost" />
-		<cfargument name="port" type="numeric" required="false" default="#application.config.testing.seleniumport#" />
-		<cfargument name="browser" type="string" required="false" default="#application.config.testing.seleniumbrowser#" />
+		<cfargument name="port" type="numeric" required="false" default="4444" />
+		<cfargument name="browser" type="string" required="false" default="*chrome" />
 		<cfargument name="baseurl" type="string" required="false" default="http://www.google.com.au/" />
 		
 		<cfset this.selenium = createobject("java","com.thoughtworks.selenium.DefaultSelenium").init(arguments.host, arguments.port, arguments.browser, arguments.baseurl) />

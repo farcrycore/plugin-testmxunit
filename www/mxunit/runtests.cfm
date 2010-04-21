@@ -14,13 +14,14 @@
 <cfparam name="url.test" default="" />
 <cfparam name="url.format" default="html" /><!--- html | xml --->
 
-	
+
 <!--- Get test information --->
 <cfset stMXTest = createobject("component",application.stCOAPI.mxTest.packagepath).getByTitle(url.testset) />
 <cfset qTests = querynew("id,componentpath,componentname,componenthint,testmethod,testname,testhint") />
 <cfset stTests = structnew() />
 <cfloop list="#stMXTest.tests#" index="testpath">
-	<cfset oTest = createobject("component",testpath) />
+	<cfset componentpath = listdeleteat(testpath,listlen(testpath,"."),".") />
+	<cfset oTest = createobject("component",componentpath) />
 	<cfset stMD = getMetadata(oTest) />
 	
 	<cfif structkeyexists(stMD,"displayname")>
@@ -35,30 +36,32 @@
 		<cfset componenthint = "" />
 	</cfif>
 	
-	<cfset stTests[testpath] = createobject("component",testpath) />
+	<cfset stTests[componentpath] = oTest />
 	
 	<cfloop list="#arraytolist(oTest.getRunnableMethods())#" index="thistest">
-		<cfset testtitle = thistest />
-		<cfset testhint = "" />
-		<cfloop from="1" to="#arraylen(stMD.functions)#" index="i">
-			<cfif stMD.functions[i].name eq thistest>
-				<cfif structkeyexists(stMD.functions[i],"displayname")>
-					<cfset testtitle = stMD.functions[i].displayname />
+		<cfif listlast(testpath,".") eq thistest>
+			<cfset testtitle = thistest />
+			<cfset testhint = "" />
+			<cfloop from="1" to="#arraylen(stMD.functions)#" index="i">
+				<cfif stMD.functions[i].name eq thistest>
+					<cfif structkeyexists(stMD.functions[i],"displayname")>
+						<cfset testtitle = stMD.functions[i].displayname />
+					</cfif>
+					<cfif structkeyexists(stMD.functions[i],"hint")>
+						<cfset testhint = stMD.functions[i].hint />
+					</cfif>
 				</cfif>
-				<cfif structkeyexists(stMD.functions[i],"hint")>
-					<cfset testhint = stMD.functions[i].hint />
-				</cfif>
-			</cfif>
-		</cfloop>
-		
-		<cfset queryaddrow(qTests) />
-		<cfset querysetcell(qTests,"id",replace(testpath,".","","ALL")) />
-		<cfset querysetcell(qTests,"componentpath",testpath) />
-		<cfset querysetcell(qTests,"componentname",componentname) />
-		<cfset querysetcell(qTests,"componenthint",componenthint) />
-		<cfset querysetcell(qTests,"testmethod",thistest) />
-		<cfset querysetcell(qTests,"testname",testtitle) />
-		<cfset querysetcell(qTests,"testhint",testhint) />
+			</cfloop>
+			
+			<cfset queryaddrow(qTests) />
+			<cfset querysetcell(qTests,"id",replace(testpath,".","","ALL")) />
+			<cfset querysetcell(qTests,"componentpath",componentpath) />
+			<cfset querysetcell(qTests,"componentname",componentname) />
+			<cfset querysetcell(qTests,"componenthint",componenthint) />
+			<cfset querysetcell(qTests,"testmethod",thistest) />
+			<cfset querysetcell(qTests,"testname",testtitle) />
+			<cfset querysetcell(qTests,"testhint",testhint) />
+		</cfif>
 	</cfloop>
 </cfloop>
 
@@ -195,7 +198,8 @@
 								testindex = index;
 								jQ.ajax({
 									success:displayTestResult,
-									url:'#cgi.SCRIPT_NAME#?#cgi.QUERY_STRING#&suite='+tests[index].componentpath+'&test='+tests[index].testmethod
+									url:'#cgi.SCRIPT_NAME#?#cgi.QUERY_STRING#&suite='+tests[index].componentpath+'&test='+tests[index].testmethod,
+									timeout:120000
 								});
 							};
 							

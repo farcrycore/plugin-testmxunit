@@ -19,7 +19,7 @@
 	<cflocation url="#cgi.script_name#?#replacenocase(cgi.query_string,'deploy=true','')#" />
 </cfif>
 
-<cfif application.factory.oAlterType.isCFCDeployed(typename="mxTest")>
+<cfif application.fc.lib.db.isDeployed(typename="mxTest")>
 	<ft:form>
 		<cfoutput><h1>Configure Automatic Tests</h1></cfoutput>
 		<cfset oMXUnit = createobject("component",application.stCOAPI.mxTest.packagepath) />

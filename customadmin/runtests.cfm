@@ -6,7 +6,9 @@
 	<cflocation url="#cgi.script_name#?#replacenocase(cgi.query_string,'deploy=true','')#" />
 </cfif>
 
-<cfif application.fc.lib.db.isDeployed(typename="mxTest")>
+<cfset oMXUnit = createobject("component",application.stCOAPI.mxTest.packagepath) />
+
+<cfif oMXUnit.isDeployed()>
 	<cfinclude template="/farcry/plugins/testMXUnit/www/mxunit/runtests.cfm" />
 <cfelse>
 	<admin:header />

@@ -241,10 +241,10 @@
 					<cfif structkeyexists(arguments,"exceptobjectids") and len(arguments.exceptobjectids)>
 						AND objectid not in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#arguments.exceptobjectids#" />)
 					</cfif>
-	</cfquery>
-	
-	<cfreturn qObjects />
-</cffunction>
+		</cfquery>
+		
+		<cfreturn qObjects />
+	</cffunction>
 
 	<cffunction name="pinObjects" access="package" returntype="void" output="false" hint="Adds an object to the dirty list, to be removed on tearDown">
 		<cfset var stPin = structnew() />
@@ -597,5 +597,212 @@
 		
 		<cfreturn true />
 	</cffunction>
-
+	
+	
+	<cffunction name="combineErrors" access="package" returntype="array" hint="Agregates errors into single structs">
+		<cfargument name="errors" type="array" required="true" />
+		<cfargument name="message" type="string" required="true" />
+		<cfargument name="template" type="string" required="true" />
+		<cfargument name="line" type="string" required="true" />
+		<cfargument name="object" type="struct" required="false" />
+		
+		<cfset var i = 0 />
+		<cfset var stError = structnew() />
+		
+		<cfparam name="arguments.errors" default="#arraynew(1)#" />
+		
+		<cfloop from="1" to="#arraylen(arguments.errors)#" index="i">
+			<cfif arguments.errors[i].message eq arguments.message 
+				and arguments.errors[i].template eq arguments.template
+				and arguments.errors[i].line eq arguments.line>
+				<cfset arguments.errors[i].count = arguments.errors[i].count + 1 />
+				<cfif structkeyexists(arguments,"object")>
+					<cfset arrayappend(arguments.errors[i].object,"#arguments.object.label# [#arguments.object.objectid#]") />
+				</cfif>
+				<cfreturn arguments.errors />
+			</cfif>
+		</cfloop>
+		
+		<cfset stError.message = arguments.message />
+		<cfset stError.template = arguments.template />
+		<cfset stError.line = arguments.line />
+		<cfset stError.count = 1 />
+		<cfset stError.object = arraynew(1) />
+		<cfif structkeyexists(arguments,"object")>
+			<cfset arrayappend(stError.object,"#arguments.object.label# [#arguments.object.objectid#]") />
+		</cfif>
+		<cfset arrayappend(arguments.errors,stError) />
+		
+		<cfreturn arguments.errors />
+	</cffunction>
+	
+	<cffunction name="assertWebskins" access="package" returntype="boolean" hint="Tests webskins for a specified type / set of objects. This will throw an error with details instead of failing.">
+		<cfargument name="typename" type="string" required="true" hint="Type being tested" />
+		<cfargument name="stObject" type="struct" required="false" hint="Object to test with. One of stObject|aObjects|objectid|lObjectIDs|nRandom needs to be defined or only type webskins will be tested." />
+		<cfargument name="aObjects" type="array" required="false" default="#arraynew(1)#" hint="Set of objects to test with. One of stObject|aObjects|objectid|lObjectIDs|nRandom needs to be defined or only type webskins will be tested." />
+		<cfargument name="objectid" type="uuid" required="false" hint="ID of object to test with. One of stObject|aObjects|objectid|lObjectIDs|nRandom needs to be defined or only type webskins will be tested." />
+		<cfargument name="lObjectIds" type="string" required="false" hint="Set of objects to test with. One of stObject|aObjects|objectid|lObjectIDs|nRandom needs to be defined or only type webskins will be tested." />
+		<cfargument name="nRandom" type="numeric" required="false" hint="Number of random objects in the database to test with. One of stObject|aObjects|objectid|nRandom needs to be defined or only type webskins will be tested." />
+		<cfargument name="viewbinding" type="string" required="false" default="all" hint="Restrict tests to webskins of a certain binding. NOTE: webskins that are bound to 'any' are treated as 'object' webskins." options="type,object,all" />
+		<cfargument name="viewstack" type="string" required="false" default="all" hint="Restrict tests to webskins of a certain stack level. NOTE: webskins that are not at a particular stack level (i.e. any) are treated as 'fragment' webskins." options="all,page,body,ajax,fragment" />
+		<cfargument name="lWebskins" type="string" required="false" hint="Only test the specified webskins." />
+		<cfargument name="lExcludeWebskins" type="string" required="false" default="" hint="Exclude specified webskins from tests." />
+		<cfargument name="regex" type="string" required="false" default="" hint="Additional test with regex. Default is to only text webskin execution, not specific content." />
+		
+		<cfset var qRandom = "" />
+		<cfset var thisobject = 0 />
+		<cfset var thiswebskin = "" />
+		<cfset var stWebskinResult = structnew() />
+		<cfset var thishtml = "" />
+		<cfset var stError = structnew() />
+		<cfset var counterrors = 0 />
+		<cfset var aResults = arraynew(1) />
+		<cfset var sResults = "" />
+		<cfset var cfhttp = structnew() />
+		
+		<cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
+		
+		<cfparam name="arguments.lWebskins" default="#structkeylist(application.stCOAPI[arguments.typename].stWebskins)#" />
+		
+		<cfif arraylen(arguments.aObjects)>
+			<cfloop from="1" to="#arraylen(arguments.aObjects)#" index="thisobject">
+				<cfset arguments.aObjects[thisobject] = application.fapi.getContentObject(typename=arguments.typename,objectid=arguments.aObjects[thisobject]) />
+			</cfloop>
+		<cfelseif structkeyexists(arguments,"stObject")>
+			<cfset arrayappend(arguments.aObjects,arguments.stObject) />
+		<cfelseif structkeyexists(arguments,"objectid")>
+			<cfset arrayappend(arguments.aObjects,application.fapi.getContentObject(typename=arguments.typename,objectid=arguments.objectid)) />
+		<cfelseif structkeyexists(arguments,"lObjectIDs")>
+			<cfloop list="#arguments.lObjectIDs#" index="thisobject">
+				<cfset arrayappend(arguments.aObjects, application.fapi.getContentObject(typename=arguments.typename,objectid=thisobject)) />
+			</cfloop>
+		<cfelseif structkeyexists(arguments,"nRandom")>
+			<cfswitch expression="#application.dbtype#">
+				<cfcase value="mysql,mysql5" delimiters=",">
+					<cfset qRandom = application.fapi.getContentObjects(typename=arguments.typename,status="approved,pending,draft",maxRows=arguments.nRandom,orderBy="rand() asc") />
+				</cfcase>
+				<cfcase value="mssql">
+					<cfset qRandom = application.fapi.getContentObjects(typename=arguments.typename,status="approved,pending,draft",maxRows=arguments.nRandom,orderBy="newid() asc") />
+				</cfcase>
+			</cfswitch>
+			<cfloop query="qRandom">
+				<cfset arrayappend(arguments.aObjects,application.fapi.getContentObject(typename=arguments.typename,objectid=qRandom.objectid)) />
+			</cfloop>
+		</cfif>
+		
+		<cfif not arraylen(arguments.aObjects)>
+			<cfif arguments.viewbinding eq "object">
+				<cfthrow message="No objects are available to test with" />
+			<cfelseif listcontainsnocase(arguments.viewbinding,"object")>
+				<cfset arguments.viewbinding = listdeleteat(arguments.viewbinding,listfindnocase(arguments.viewbinding,"object")) />
+			<cfelseif arguments.viewbinding eq "all">
+				<cfset arguments.viewbinding = "type" />
+			</cfif>
+		</cfif>
+		<cfif arguments.viewbinding eq "all">
+			<cfset arguments.viewbinding = "type,object" />
+		</cfif>
+		
+		<cfif arguments.viewstack eq "all">
+			<cfset arguments.viewstack = "page,body,ajax,fragment" />
+		</cfif>
+		
+		<cfloop list="#arguments.lWebskins#" index="thiswebskin">
+			<cfset stWebskinResult = structnew() />
+			<cfset stWebskinResult.displayname = thiswebskin />
+			<cfset stWebskinResult.path = application.stCOAPI[arguments.typename].stWebskins[thiswebskin].path />
+			<cfif structkeyexists(application.stCOAPI[arguments.typename].stWebskins[thiswebskin],"displayname")>
+				<cfset stWebskinResult.displayname = application.stCOAPI[arguments.typename].stWebskins[thiswebskin].displayname />
+			</cfif>
+			<cfif application.stCOAPI[arguments.typename].stWebskins[thiswebskin].viewbinding eq "any">
+				<cfset stWebskinResult.viewbinding = "object" />
+			<cfelse>
+				<cfset stWebskinResult.viewbinding = application.stCOAPI[arguments.typename].stWebskins[thiswebskin].viewbinding />
+			</cfif>
+			<cfif application.stCOAPI[arguments.typename].stWebskins[thiswebskin].viewstack eq "any">
+				<cfset stWebskinResult.viewstack = "fragment" />
+			<cfelse>
+				<cfset stWebskinResult.viewstack = application.stCOAPI[arguments.typename].stWebskins[thiswebskin].viewstack />
+			</cfif>
+			<cfset stWebskinResult.successes = 0 />
+			<cfset stWebskinResult.errors = arraynew(1) />
+			
+			<cfif listcontainsnocase(arguments.viewbinding,stWebskinResult.viewbinding) and listcontainsnocase(arguments.viewstack,stWebskinResult.viewstack) and not listcontainsnocase(arguments.lExcludeWebskins,thiswebskin)>
+				<cfif stWebskinResult.viewbinding eq "object">
+					<cfloop from="1" to="#arraylen(arguments.aObjects)#" index="thisobject">
+						<cfset pinObjects(typename=arguments.typename,objectid=arguments.aObjects[thisobject].objectid) />
+						
+						<cfif stWebskinResult.viewstack eq "page">
+							<cfhttp url="#application.fapi.getLink(objectid=arguments.aObjects[thisobject].objectid,view=thiswebskin,includedomain=1)#" />
+							
+							<cfif find("200",cfhttp.StatusCode)>
+								<cfif len(arguments.regex) and not refindnocase(arguments.regex,cfhttp.FileContent)>
+									<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"Output failed to validate against the supplied regex",stWebskinResult.path,0,arguments.aObjects[thisobject]) />
+								<cfelse>
+									<cfset stWebskinResult.successes = stWebskinResult.successes + 1 />
+								</cfif>
+							<cfelse>
+								<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"There was an error instantiating this page webskin [#application.fapi.getLink(objectid=arguments.aObjects[thisobject].objectid,view=thiswebskin,includedomain=1)#]","",0,arguments.aObjects[thisobject]) />
+							</cfif>
+						<cfelse>
+							<cftry>
+								<skin:view stObject="#arguments.aObjects[thisobject]#" typename="#arguments.typename#" webskin="#thiswebskin#" r_html="thishtml" />
+								
+								<cfif len(arguments.regex) and not refindnocase(arguments.regex,thishtml)>
+									<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"Output failed to validate against the supplied regex",stWebskinResult.path,0,arguments.aObjects[thisobject]) />
+								<cfelse>
+									<cfset stWebskinResult.successes = stWebskinResult.successes + 1 />
+								</cfif>
+								
+								<cfcatch>
+									<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,cfcatch.message,cfcatch.tagcontext[1].template,cfcatch.tagcontext[1].line,arguments.aObjects[thisobject]) />
+								</cfcatch>
+							</cftry>
+						</cfif>
+						
+						<cfset revertObjects() />
+					</cfloop>
+				<cfelse>
+					<cfif stWebskinResult.viewstack eq "page">
+						<cfhttp url="#application.fapi.getLink(typename=arguments.typename,view=thiswebskin,includedomain=1)#" />
+						
+						<cfif find("200",cfhttp.StatusCode)>
+							<cfif not len(arguments.regex) or not refindnocase(arguments.regex,cfhttp.FileContent)>
+								<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"Output failed to validate against the supplied regex",stWebskinResult.path,0) />
+							<cfelse>
+								<cfset stWebskinResult.successes = stWebskinResult.successes + 1 />
+							</cfif>
+						<cfelse>
+							<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"There was an error instantiating this page webskin [#application.fapi.getLink(typename=arguments.typename,view=thiswebskin,includedomain=1)#]","",0) />
+						</cfif>
+					<cfelse>
+						<cftry>
+							<skin:view typename="#arguments.typename#" webskin="#thiswebskin#" r_html="thishtml" />
+							
+							<cfif not len(arguments.regex) or not refindnocase(arguments.regex,thishtml)>
+								<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"Output failed to validate against the supplied regex",stWebskinResult.path,0) />
+							<cfelse>
+								<cfset stWebskinResult.successes = stWebskinResult.successes + 1 />
+							</cfif>
+							
+							<cfcatch>
+								<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,cfcatch.message,cfcatch.tagcontext[1].template,cfcatch.tagcontext[1].line) />
+							</cfcatch>
+						</cftry>
+					</cfif>
+				</cfif>
+				
+				<cfset arrayappend(aResults,stWebskinResult) />
+				<cfset counterrors = counterrors + arraylen(stWebskinResult.errors) />
+			</cfif>
+		</cfloop>
+		
+		<cfif counterrors>
+			<cfwddx action="cfml2wddx" input="#aResults#" output="sResults" />
+			<cfthrow message="Webskin tests failed" detail="#sResults#" />
+		</cfif>
+		
+		<cfreturn true />
+	</cffunction>
+	
 </cfcomponent>

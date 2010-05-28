@@ -9,7 +9,7 @@
 
 <cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
 
-<cfparam name="url.testset" default="Automatic" />
+<cfparam name="url.testset" default="Default #application.applicationname#" />
 <cfparam name="url.suite" default="" />
 <cfparam name="url.test" default="" />
 <cfparam name="url.format" default="html" /><!--- html | xml --->
@@ -269,7 +269,7 @@
 								testindex = index;
 								$j.ajax({
 									success:displayTestResult,
-									url:'#cgi.SCRIPT_NAME#?#cgi.QUERY_STRING#&suite='+tests[index].componentpath+'&test='+tests[index].testmethod
+									url:'#cgi.SCRIPT_NAME#?#cgi.QUERY_STRING#&suite='+tests[index].componentpath+'&test='+tests[index].testmethod+'&ajaxmode=1'
 								});
 							};
 							

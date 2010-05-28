@@ -10,7 +10,7 @@
 				name="title" type="string" hint="The name of the test set. A set called 'Automatic' should be created automatically" />
 	<cfproperty ftSeq="2" ftFieldset="Test" ftWizardsetp="Test" ftLabel="Email notification"
 				name="notification" type="longchar" hint="The email addresses to send the unit test results"
-				ftType="string" />
+				ftType="string" ftHint="This is used during automated test runs, not when using the 'Run Tests' option to the right." />
 	<cfproperty ftSeq="3" ftFieldset="Test" ftWizardstep="Test" ftLabel="Tests"
 				name="tests" type="longchar" hint="The tests that are part of the set" />
 	
@@ -248,6 +248,7 @@
 			<cfset stObj = getData(objectid=createuuid()) />
 			<cfset stObj.title = arguments.title />
 			<cfset stObj.notification = application.config.general.adminemail />
+			<cfset setData(stProperties=stObj) />
 			
 			<cfreturn stObj />
 		</cfif>

@@ -732,20 +732,23 @@
 					<cfloop from="1" to="#arraylen(arguments.aObjects)#" index="thisobject">
 						<cfset pinObjects(typename=arguments.typename,objectid=arguments.aObjects[thisobject].objectid) />
 						
-						<cfif stWebskinResult.viewstack eq "page">
-							<cfhttp url="#application.fapi.getLink(objectid=arguments.aObjects[thisobject].objectid,view=thiswebskin,includedomain=1)#" />
-							
-							<cfif find("200",cfhttp.StatusCode)>
-								<cfif len(arguments.regex) and not refindnocase(arguments.regex,cfhttp.FileContent)>
-									<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"Output failed to validate against the supplied regex",stWebskinResult.path,0,arguments.aObjects[thisobject]) />
+						<cftry>
+							<cfif stWebskinResult.viewstack eq "page">
+								<cfhttp url="#application.fapi.getLink(objectid=arguments.aObjects[thisobject].objectid,view=thiswebskin,includedomain=1)#" timeout="15" redirect="false" />
+								
+								<cfif find("200",cfhttp.StatusCode)>
+									<cfif len(arguments.regex) and not refindnocase(arguments.regex,cfhttp.FileContent)>
+										<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"Output failed to validate against the supplied regex",stWebskinResult.path,0,arguments.aObjects[thisobject]) />
+									<cfelse>
+										<cfset stWebskinResult.successes = stWebskinResult.successes + 1 />
+									</cfif>
 								<cfelse>
-									<cfset stWebskinResult.successes = stWebskinResult.successes + 1 />
+									<cfset cfhttp = duplicate(cfhttp) />
+									<cfset cfhttp.url = application.fapi.getLink(objectid=arguments.aObjects[thisobject].objectid,view=thiswebskin,includedomain=1) />
+									<cfwddx action="cfml2wddx" input="#cfhttp#" output="cfhttp" />
+									<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,cfhttp,"",0,arguments.aObjects[thisobject]) />
 								</cfif>
 							<cfelse>
-								<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"There was an error instantiating this page webskin [#application.fapi.getLink(objectid=arguments.aObjects[thisobject].objectid,view=thiswebskin,includedomain=1)#]","",0,arguments.aObjects[thisobject]) />
-							</cfif>
-						<cfelse>
-							<cftry>
 								<skin:view stObject="#arguments.aObjects[thisobject]#" typename="#arguments.typename#" webskin="#thiswebskin#" r_html="thishtml" />
 								
 								<cfif len(arguments.regex) and not refindnocase(arguments.regex,thishtml)>
@@ -753,30 +756,33 @@
 								<cfelse>
 									<cfset stWebskinResult.successes = stWebskinResult.successes + 1 />
 								</cfif>
-								
-								<cfcatch>
-									<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,cfcatch.message,cfcatch.tagcontext[1].template,cfcatch.tagcontext[1].line,arguments.aObjects[thisobject]) />
-								</cfcatch>
-							</cftry>
-						</cfif>
+							</cfif>
+							
+							<cfcatch>
+								<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,cfcatch.message,cfcatch.tagcontext[1].template,cfcatch.tagcontext[1].line,arguments.aObjects[thisobject]) />
+							</cfcatch>
+						</cftry>
 						
 						<cfset revertObjects() />
 					</cfloop>
 				<cfelse>
-					<cfif stWebskinResult.viewstack eq "page">
-						<cfhttp url="#application.fapi.getLink(typename=arguments.typename,view=thiswebskin,includedomain=1)#" />
-						
-						<cfif find("200",cfhttp.StatusCode)>
-							<cfif not len(arguments.regex) or not refindnocase(arguments.regex,cfhttp.FileContent)>
-								<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"Output failed to validate against the supplied regex",stWebskinResult.path,0) />
+					<cftry>
+						<cfif stWebskinResult.viewstack eq "page">
+							<cfhttp url="#application.fapi.getLink(typename=arguments.typename,view=thiswebskin,includedomain=1)#" timeout="15" redirect="false" />
+							
+							<cfif find("200",cfhttp.StatusCode)>
+								<cfif not len(arguments.regex) or not refindnocase(arguments.regex,cfhttp.FileContent)>
+									<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"Output failed to validate against the supplied regex",stWebskinResult.path,0) />
+								<cfelse>
+									<cfset stWebskinResult.successes = stWebskinResult.successes + 1 />
+								</cfif>
 							<cfelse>
-								<cfset stWebskinResult.successes = stWebskinResult.successes + 1 />
+								<cfset cfhttp = duplicate(cfhttp) />
+								<cfset cfhttp.url = application.fapi.getLink(typename=arguments.typename,view=thiswebskin,includedomain=1) />
+								<cfwddx action="cfml2wddx" input="#cfhttp#" output="cfhttp" />
+								<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,cfhttp,"",0) />
 							</cfif>
 						<cfelse>
-							<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,"There was an error instantiating this page webskin [#application.fapi.getLink(typename=arguments.typename,view=thiswebskin,includedomain=1)#]","",0) />
-						</cfif>
-					<cfelse>
-						<cftry>
 							<skin:view typename="#arguments.typename#" webskin="#thiswebskin#" r_html="thishtml" />
 							
 							<cfif not len(arguments.regex) or not refindnocase(arguments.regex,thishtml)>
@@ -784,12 +790,12 @@
 							<cfelse>
 								<cfset stWebskinResult.successes = stWebskinResult.successes + 1 />
 							</cfif>
-							
-							<cfcatch>
-								<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,cfcatch.message,cfcatch.tagcontext[1].template,cfcatch.tagcontext[1].line) />
-							</cfcatch>
-						</cftry>
-					</cfif>
+						</cfif>
+						
+						<cfcatch>
+							<cfset stWebskinResult.errors = combineErrors(stWebskinResult.errors,cfcatch.message,cfcatch.tagcontext[1].template,cfcatch.tagcontext[1].line) />
+						</cfcatch>
+					</cftry>
 				</cfif>
 				
 				<cfset arrayappend(aResults,stWebskinResult) />

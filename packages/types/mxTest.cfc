@@ -58,9 +58,11 @@
 					};
 					function setSelectedLocations(location,total,selected){
 						$j('a.location'+location+'info').html(''+selected+'/'+total);
+						if (total==selected) $j('##all'+location)[0].checked = true;
 					};
 					function setSelectedTestCases(location,id,total,selected){
 						$j('a.location'+location+id+'info').html(''+selected+'/'+total);
+						if (total==selected) $j('input.'+id)[0].checked = true;
 					};
 					function updateSelectedInfo(selected,location,id){
 						// location
@@ -92,7 +94,7 @@
 						<cfset testcaseselected = 0 />
 						
 						<label class="testcomponent" style="margin-left:1.5em;text-align:left;">
-							<input type="checkbox" name="selecttestcase" class="location#qTests.location#" value="#qTests.componentpath#" onclick="selectTests(this.checked,'#qTests.location#','#qTests.id#');" />
+							<input type="checkbox" name="selecttestcase" class="location#qTests.location# #qTests.id#" value="#qTests.componentpath#" onclick="selectTests(this.checked,'#qTests.location#','#qTests.id#');" />
 							#qTests.componentname[qTests.currentrow]#
 							<a href="##" title="#qTests.componenthint#" class="location#qTests.location##qTests.id#info" onclick="$j('##location#qTests.location##qTests.id#').toggle();return false">0/0</a>
 						</label>

@@ -52,10 +52,10 @@
 		<cfargument name="categoryid" type="string" required="false" hint="" />
 		<cfargument name="categorylabel" type="string" required="false" hint="" />
 		
-		<cfset var oCategory = createobject("component","farcry.core.packages.farcry.category") />
+		<cfset var oCategory = createobject("component","farcry.core.packages.types.dmCategory") />
 		
 		<cfparam name="arguments.categoryid" default="#createuuid()#" />
-		<cfparam name="argumetns.categorylabel" default="#arguments.alias#" />
+		<cfparam name="arguments.categorylabel" default="#arguments.alias#" />
 		
 		<cfset pinCategories(arguments.categoryid) />
 		<cfset oCategory.addCategory(arguments.categoryid,arguments.categorylabel,arguments.parentid) />
@@ -71,26 +71,25 @@
 		<cfset var qCategory = structnew() />
 		<cfset var stCat = structnew() />
 		<cfset var oTree = createobject("component","farcry.core.packages.farcry.tree") />
+		<cfset var o = createobject("component",application.stCOAPI.dmCategory.packagepath) />
 		
 		<cfif isvalid("uuid",arguments.category)>
 			<cfquery datasource="#application.dsn#" name="qCategory">
 				select		*
-				from		#application.dbowner#categories
-				where		categoryid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.category#" />
+				from		#application.dbowner#dmCategory
+				where		objectid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.category#" />
 			</cfquery>
 		<cfelse><!--- Retrieve the category by alias --->
 			<cfquery datasource="#application.dsn#" name="qCategory">
 				select		*
-				from		#application.dbowner#categories
+				from		#application.dbowner#dmCategory
 				where		alias=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.category#" />
 			</cfquery>
 		</cfif>
 		
 		<cfif qCategory.recordcount>
-			<cfset stCat.categoryid = qCategory.categoryid />
-			<cfset stCat.alias = qCategory.alias />
-			<cfset stCat.categoryLabel = qCategory.categoryLabel />
-			<cfset stCat.parentid = oTree.getParentID(qCategory.categoryid) />
+			<cfset stCat = o.getData(qCategory.objectid) />
+			<cfset stCat.categoryid = stCat.objectid />
 		</cfif>
 		
 		<cfreturn stCat />
@@ -139,7 +138,7 @@
 		<cfset var stCurrent = getCategory(stPin.category) />
 		<cfset var lReferences = "" />
 		<cfset var thisreference = "" />
-		<cfset var oCategory = createobject("component","farcry.core.packages.farcry.category") />
+		<cfset var oCategory = createobject("component","farcry.core.packages.types.dmCategory") />
 		
 		<cfif not structisempty(stCurrent)>
 			<cfset lReferences = getCategoryReferences(stCurrent.categoryid) />
@@ -169,12 +168,7 @@
 		<cfelse><!--- CASE 3: Revert this category --->
 			
 			<!--- Update category --->
-			<cfquery datasource="#application.dsn#">
-				update	#application.dbowner#categories
-				set		alias=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stPin.alias#" />,
-						categorylabel=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stPin.categorylabel#" />
-				where	categoryid=categoryid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stPin.categoryid#" />
-			</cfquery>
+			<cfset oCategory.setData(stProperties=arguments.stPin) />
 			
 			<!--- Check parent --->
 			<cfif arguments.stPin.stPre.parentid neq stCurrent.parentid>

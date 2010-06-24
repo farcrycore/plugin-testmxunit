@@ -4,7 +4,15 @@
 		<cfargument name="host" type="string" required="false" default="localhost" />
 		<cfargument name="port" type="numeric" required="false" default="4444" />
 		<cfargument name="browser" type="string" required="false" default="*chrome" />
-		<cfargument name="baseurl" type="string" required="false" default="http://www.google.com.au/" />
+		<cfargument name="baseurl" type="string" required="false" default="" />
+		
+		<cfif not len(arguments.baseurl)>
+			<cfif isdefined("request.baseurl")>
+				<cfset arguments.baseurl = request.baseurl />
+			<cfelse>
+				<cfset arguments.baseurl = "http://#cgi.http_host#/" />
+			</cfif>
+		</cfif>
 		
 		<cfset this.selenium = createobject("java","com.thoughtworks.selenium.DefaultSelenium").init(arguments.host, arguments.port, arguments.browser, arguments.baseurl) />
 		<cfset this.selenium.start() />

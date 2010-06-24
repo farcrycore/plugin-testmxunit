@@ -9,14 +9,31 @@
 
 <cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
 
-<cfparam name="url.testset" default="Default #application.applicationname#" />
+<cfparam name="url.testset" default="" />
 <cfparam name="url.suite" default="" />
 <cfparam name="url.test" default="" />
+<cfparam name="url.host" default="1" />
 <cfparam name="url.format" default="html" /><!--- html | xml --->
 
-
 <!--- Get test information --->
-<cfset stMXTest = createobject("component",application.stCOAPI.mxTest.packagepath).getByTitle(url.testset) />
+<cfset qAllTests = application.fapi.getContentObjects(typename="mxTest",lProperties="objectid,title",orderby="title asc") />
+<cfif not len(url.testset)>
+	<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app">
+		<cfset url.testset = qAllTests.objectid[1] />
+	<cfelse>
+		<cfset url.testset = "Default #application.applicationname#" />
+	</cfif>
+</cfif>
+<cfif isvalid("uuid",url.testset)>
+	<cfset stMXTest = createobject("component",application.stCOAPI.mxTest.packagepath).getData(url.testset) />
+<cfelseif len(url.testset)>
+	<cfset stMXTest = createobject("component",application.stCOAPI.mxTest.packagepath).getByTitle(url.testset) />
+</cfif>
+<cfif not len(stMXTest.urls)>
+	<cfset stMXTest.urls = "http://#cgi.http_host#/" />
+</cfif>
+<cfset baseurl = listgetat(stMXTest.urls,url.host,"#chr(10)##chr(13)#") />
+
 <cfset qTests = querynew("id,componentpath,componentname,componenthint,testmethod,testname,testhint,testdependson") />
 <cfset stTests = structnew() />
 <cfloop list="#stMXTest.tests#" index="testpath">
@@ -79,6 +96,12 @@
 	<cfset testSuite = createObject("component","mxunit.framework.TestSuite").TestSuite() />
 	
 	<cfset testSuite.add(url.suite,url.test,stTests[url.suite]) />
+	
+	<cfif isdefined("url.baseurl")>
+		<cfset request.baseurl = url.baseurl />
+	<cfelse>
+		<cfset request.baseurl = baseurl />
+	</cfif>
 	
 	<cfset results = testSuite.run(testMethod=url.test) />
 	<cfset qResults = results.getResultsOutput('query') /><!--- html | extjs | xml | junitxml | query | array --->
@@ -161,16 +184,52 @@
 								##suitecompleted .Failed { color:##CC2504; }
 								##suitecompleted .Passed { color:##00BF0D; }
 								##suitecompleted .Unrunnable { color:##FFA500; }
+								
+							##defaultbaseurl { font-family:helvetica,arial; }
 						</style>
 						
 					</head>
 					<body>
-						<div id="suiteprogressbar">
-							<div id="progress" class="progresstext"></div>
-						</div>
+						<table width="100%">
+							<tr>
+								<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app" and listlen(stMXTest.urls,"#chr(10)##(chr(13))#")>
+									<td width="200px">
+										<select id="testset" style="width:100%;" onchange="window.location.href=this.value;">
+											<cfloop query="qAllTests">
+												<option value="#application.fapi.fixURL(url=application.fapi.getLink(),addvalues='testset=#qAllTests.objectid#')#"<cfif url.testset eq qAllTests.objectid> selected</cfif>>#qAllTests.title#</option>
+											</cfloop>
+										</select>
+									</td>
+								</cfif>
+								<td width="200px">
+									<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app" and listlen(stMXTest.urls,"#chr(10)##(chr(13))#") gt 1>
+										<select id="baseurl" style="width:100%;">
+											<cfloop list="#stMXTest.urls#" delimiters="#chr(10)##(chr(13))#" index="thisbaseurl">
+												<option value="#thisbaseurl#"<cfif thisbaseurl eq baseurl> selected</cfif>>#thisbaseurl#</option>
+											</cfloop>
+										</select>
+									<cfelse>
+										<a id="defaultbaseurl" title="#baseurl#">#baseurl#</a>
+										<input type="hidden" id="baseurl" value="#baseurl#" />
+									</cfif>
+								</td>
+								<td width="45px">
+									<a href="##" id="action-restart" class="ui-state-default ui-icon ui-icon-seek-first" style="float:left;">&nbsp;</a>
+									<span style="float:left;">&nbsp;</span>
+									<a href="##" id="action-play-pause" class="ui-state-default ui-icon ui-icon-play" style="float:left;">&nbsp;</a>
+								</td>
+								<td>
+									<div id="suiteprogressbar">
+										<div id="progress" class="progresstext"></div>
+									</div>
+								</td>
+							</tr>
+						</table>
 			</cfoutput>
 			
 			<skin:loadJS id="jquery" />
+			<skin:loadJS id="jquery-ui" />
+			<skin:loadCSS id="jquery-ui" />
 			<skin:htmlHead>
 				<cfoutput>
 					<script type="text/javascript">
@@ -189,6 +248,8 @@
 						
 							var testindex = 0;
 							var results = { error:0, passed:0, failed:0, dependencyfailures:0 };
+							var bRunning = 0;
+							var baseurl = "";
 							
 							function isTestReady(index,killwaiting){
 								if (tests[index].result!==0) return 0; // don't run a test twice
@@ -262,19 +323,82 @@
 								testindex = getNextTest();
 								per = (results.error+results.passed+results.failed+results.dependencyfailures)/#qTests.recordcount#*100;
 								$j("##progress").animate({ width:per.toString()+"%" },100,"linear");
-								if (testindex>-1) getTestResult(testindex); else $j("##suiteprogressbar").replaceWith("<div id='suitecompleted'>All tests have been completed ("+(results.error ? " <span class='Error'>errors: <span class='count'>"+results.error+"</span></span> " : "")+(results.failed ? " <span class='Failed'>failures: <span class='count'>"+results.failed+"</span> </span>" : "")+(results.passed ? " <span class='Passed'>passes: <span class='count'>"+results.passed+"</span></span> " : "")+(results.dependencyfailures ? " <span class='Unrunnable'>dependency failures: <span class='count'>"+results.dependencyfailures+"</span></span> " : "")+")</div>");
+								if (testindex>-1) 
+									getTestResult(testindex); 
+								else {
+									$j("##suiteprogressbar").replaceWith("<div id='suitecompleted'>All tests have been completed ("+(results.error ? " <span class='Error'>errors: <span class='count'>"+results.error+"</span></span> " : "")+(results.failed ? " <span class='Failed'>failures: <span class='count'>"+results.failed+"</span> </span>" : "")+(results.passed ? " <span class='Passed'>passes: <span class='count'>"+results.passed+"</span></span> " : "")+(results.dependencyfailures ? " <span class='Unrunnable'>dependency failures: <span class='count'>"+results.dependencyfailures+"</span></span> " : "")+")</div>");
+									finishTests();
+								}
 							};
 							
 							function getTestResult(index) {
 								testindex = index;
-								$j.ajax({
-									success:displayTestResult,
-									url:'#cgi.SCRIPT_NAME#?#cgi.QUERY_STRING#&suite='+tests[index].componentpath+'&test='+tests[index].testmethod+'&ajaxmode=1'
-								});
+								if (bRunning){
+									$j.ajax({
+										success:displayTestResult,
+										url:'#cgi.SCRIPT_NAME#?#cgi.QUERY_STRING#&suite='+tests[index].componentpath+'&test='+tests[index].testmethod+'&baseurl='+encodeURI(baseurl)+'&ajaxmode=1'
+									});
+								}
+							};
+							
+							function playTests(){
+								bRunning = 1;
+								$j("##action-play-pause").removeClass("ui-icon-play").addClass("ui-icon-pause");
+								$j("##baseurl,##testset").attr("disabled",true);
+								baseurl = $j("##baseurl").val();
+								getTestResult(getNextTest());
+							};
+							function pauseTests(){
+								bRunning = 0;
+								$j("##action-play-pause").removeClass("ui-icon-pause").addClass("ui-icon-play");
+								$j("##baseurl,##testset").attr("disabled",false);
+							};
+							function finishTests(){
+								bRunning = 0;
+								$j("##action-play-pause")
+									.removeClass("ui-icon-pause").addClass("ui-icon-play")
+									.removeClass("ui-state-default").addClass('ui-state-disabled');
+								$j("##baseurl,##testset").attr("disabled",false);
+							};
+							function resetTests(){
+								testindex = 0;
+								results = { error:0, passed:0, failed:0, dependencyfailures:0 };
+								for (var i=0;i<tests.length;i++)
+									tests[i].result = 0;
+								
+								$("div.testresult").removeClass("Error").removeClass("Passed").removeClass("Failed").removeClass("Unrunnable").addClass("Waiting")
+									.find("div.testtime").html("&nbsp;").end()
+									.find("div.moredetail").html("Queued").end()
+									.find("div.detail").html("").end();
+								
+								$j("##action-play-pause").removeClass("ui-state-disabled").addClass('ui-state-default');
+								
+								$("##suitecompleted").replaceWith('<div id="suiteprogressbar"><div id="progress" class="progresstext"></div></div>');
 							};
 							
 						$j(function(){
-							getTestResult(getNextTest());
+							
+							$j("##action-play-pause").bind("click",function(){
+								if (bRunning) pauseTests();	else playTests();
+								return false;
+							}).hover(function(){
+								$(this).removeClass("ui-state-default").addClass("ui-state-hover");
+							},function(){
+								$(this).removeClass("ui-state-hover").addClass("ui-state-default");
+							});
+							
+							$j.fn.log = function() { console.log(this); return this; };
+							
+							$j("##action-restart").bind("click",function(){
+								if (bRunning) pauseTests();
+								resetTests();
+								return false;
+							}).hover(function(){
+								$(this).removeClass("ui-state-default").addClass("ui-state-hover");
+							},function(){
+								$(this).removeClass("ui-state-hover").addClass("ui-state-default");
+							});
+							
 						});
 					</script>
 				</cfoutput>

@@ -7,11 +7,16 @@
 <!--- @@Developer: Blair (blair@daemon.com.au) --->
 <cfcomponent extends="farcry.core.packages.types.types" displayname="MX Unit Tests" hint="Set of unit tests. I expect this will only be used for configuring the nightly tests.">
 	<cfproperty ftSeq="1" ftFieldset="Test" ftWizardstep="Test" ftLabel="Title"
-				name="title" type="string" hint="The name of the test set. A set called 'Automatic' should be created automatically" />
-	<cfproperty ftSeq="2" ftFieldset="Test" ftWizardsetp="Test" ftLabel="Email notification"
+				name="title" type="string" hint="The name of the test set. A set called 'Automatic' should be created automatically"
+				ftValidation="required" />
+	<cfproperty ftSeq="2" ftFieldset="URLs" ftWizardstep="Test" ftLabel="URLs"
+				name="urls" type="longchar" ftHint="One URL on each line, listing the base URLs that this test suite can be run against."
+				ftDefault="'http://##cgi.http_host##/'" ftDefaultType="evaluate"
+				ftValidation="required" />
+	<cfproperty ftSeq="3" ftFieldset="Test" ftWizardsetp="Test" ftLabel="Email notification"
 				name="notification" type="longchar" hint="The email addresses to send the unit test results"
 				ftType="string" ftHint="This is used during automated test runs, not when using the 'Run Tests' option to the right." />
-	<cfproperty ftSeq="3" ftFieldset="Test" ftWizardstep="Test" ftLabel="Tests"
+	<cfproperty ftSeq="4" ftFieldset="Test" ftWizardstep="Test" ftLabel="Tests"
 				name="tests" type="longchar" hint="The tests that are part of the set" />
 	
 	<cffunction name="ftEditTests" returntype="string" output="false" access="public" hint="UI for selecting the tests in this set">
@@ -22,7 +27,11 @@
 		
 		<cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
 		
-		<cfset qTests = getTests() />
+		<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app">
+			<cfset qTests = getTests("app") />
+		<cfelse>
+			<cfset qTests = getTests() />
+		</cfif>
 		
 		<skin:loadJS id="jquery" />
 		
@@ -135,14 +144,18 @@
 	</cffunction>
 	
 	<cffunction name="getTests" returntype="query" output="false" access="public" hint="Returns all the tests for the specified location">
+		<cfargument name="mode" type="string" required="false" default="any" hint="Filters results to specific a speicfic testing mode. 'self' indicates a test that can only be run in Self Testing mode, 'app' indicates a test that can only be run in Test Appliance mode, and the default 'any' indicates a test that can be run in any mode." />
+		
 		<cfset var location = "" />
-		<cfset var qTests = querynew("id,location,componentpath,componentname,componenthint,testmethod,testname,testhint") />
+		<cfset var qTests = querynew("id,location,componentpath,componentname,componenthint,testmethod,testname,testhint,testmode") />
 		<cfset var oTest = "" />
 		<cfset var stMD = structnew() />
 		<cfset var componentname = "" />
 		<cfset var componenthint = "" />
+		<cfset var componentmode = "" />
 		<cfset var testtitle = "" />
 		<cfset var testhint = "" />
+		<cfset var testmode = "" />
 		<cfset var testssofar = "" />
 		
 		<cfloop list="core,#application.plugins#,project" index="location">
@@ -164,6 +177,12 @@
 					<cfset componenthint = "" />
 				</cfif>
 				
+				<cfif structkeyexists(stMD,"mode")>
+					<cfset componentmode = stMD.mode />
+				<cfelse>
+					<cfset componentmode = "any" />
+				</cfif>
+				
 				<cfloop list="#arraytolist(oTest.getRunnableMethods())#" index="thistest">
 					<cfset testtitle = thistest />
 					<cfset testhint = "" />
@@ -174,6 +193,11 @@
 							</cfif>
 							<cfif structkeyexists(stMD.functions[i],"hint")>
 								<cfset testhint = stMD.functions[i].hint />
+							</cfif>
+							<cfif structkeyexists(stMD.functions[i],"mode")>
+								<cfset testmode = stMD.functions[i].mode />
+							<cfelse>
+								<cfset testmode = componentmode />
 							</cfif>
 						</cfif>
 					</cfloop>
@@ -187,9 +211,18 @@
 					<cfset querysetcell(qTests,"testmethod",thistest) />
 					<cfset querysetcell(qTests,"testname",testtitle) />
 					<cfset querysetcell(qTests,"testhint",testhint) />
+					<cfset querysetcell(qTests,"testmode",testmode) />
 				</cfloop>
 			</cfloop>
 		</cfloop>
+		
+		<cfif arguments.mode neq "any">
+			<cfquery dbtype="query" name="qTests">
+				select	*
+				from	qTests
+				where	testmode='any' or testmode=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.mode#" />
+			</cfquery>
+		</cfif>
 		
 		<cfreturn qTests />
 	</cffunction>

@@ -10,8 +10,11 @@
 
 <ft:form>
 	<cfoutput><h1>Configure #stObj.title# Tests</h1></cfoutput>
-	<cfset oMXUnit = createobject("component",application.stCOAPI.mxTest.packagepath) />
-	<ft:object typename="mxTest" stObject="#oMXUnit.getByTitle()#" lfields="notification,tests" />
+	<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app">
+		<ft:object typename="mxTest" stObject="#stObj#" lfields="title,urls,notification,tests" />
+	<cfelse>
+		<ft:object typename="mxTest" stObject="#stObj#" lfields="notification,tests" />
+	</cfif>
 	<ft:farcryButtonPanel>
 		<ft:farcryButton value="Save Configuration" />
 	</ft:farcryButtonPanel>

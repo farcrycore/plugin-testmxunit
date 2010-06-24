@@ -3,6 +3,7 @@
 
 <cfimport taglib="/farcry/core/tags/admin" prefix="admin" />
 <cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
+<cfimport taglib="/farcry/core/tags/formtools" prefix="ft" />
 
 
 <admin:header />
@@ -16,7 +17,28 @@
 <cfset oMXUnit = createobject("component",application.stCOAPI.mxTest.packagepath) />
 
 <cfif oMXUnit.isDeployed()>
-	<skin:view stObject="#oMXUnit.getByTitle()#" webskin="edit" />
+	<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app">
+		<cfset stFilterMetaData = structnew() />
+		
+		<cfset stFilterMetaData.title.ftValidation = "" />
+		<cfset stFilterMetaData.urls.ftValidation = "" />
+		<cfset stFilterMetaData.urls.ftDefault = "" />
+		<cfset stFilterMetaData.urls.ftDefaultType = "" />
+		
+		<ft:objectadmin 
+			typename="mxTest"
+			title="Configure Tests"
+			columnList="title,urls" 
+			sortableColumns="title"
+			lFilterFields="title,urls"
+			stFilterMetaData="#stFilterMetaData#"
+			sqlorderby="title asc"
+			plugin="textMXUnit"
+			module="customlists/configuretests.cfm" />
+
+	<cfelse>
+		<skin:view stObject="#oMXUnit.getByTitle()#" webskin="edit" />
+	</cfif>
 <cfelse>
 	<cfoutput>The '<cfif structkeyexists(application.stCOAPI["mxTest"],"displayname")>#application.stCOAPI["mxTest"].displayname#<cfelse>#listlast(application.stCOAPI["mxTest"].name,'.')#</cfif>' content type has not been deployed yet. Click <a href="#cgi.SCRIPT_NAME#?#cgi.query_string#&deploy=true">here</a> to deploy it now.</cfoutput>
 </cfif>

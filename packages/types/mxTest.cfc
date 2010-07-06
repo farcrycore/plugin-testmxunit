@@ -162,57 +162,63 @@
 			<cfset qTestCases = getTestCases(location) />
 			
 			<cfloop query="qTestCases">
-				<cfset oTest = createobject("component",qTestCases.path) />
-				<cfset stMD = getMetadata(oTest) />
-				
-				<cfif structkeyexists(stMD,"displayname")>
-					<cfset componentname = stMD.displayname />
-				<cfelse>
-					<cfset componentname = listlast(stMD.fullname,".") />
-				</cfif>
-				
-				<cfif structkeyexists(stMD,"hint")>
-					<cfset componenthint = stMD.hint />
-				<cfelse>
-					<cfset componenthint = "" />
-				</cfif>
-				
-				<cfif structkeyexists(stMD,"mode")>
-					<cfset componentmode = stMD.mode />
-				<cfelse>
-					<cfset componentmode = "any" />
-				</cfif>
-				
-				<cfloop list="#arraytolist(oTest.getRunnableMethods())#" index="thistest">
-					<cfset testtitle = thistest />
-					<cfset testhint = "" />
-					<cfloop from="1" to="#arraylen(stMD.functions)#" index="i">
-						<cfif stMD.functions[i].name eq thistest>
-							<cfif structkeyexists(stMD.functions[i],"displayname")>
-								<cfset testtitle = stMD.functions[i].displayname />
+				<cftry>
+					<cfset oTest = createobject("component",qTestCases.path) />
+					<cfset stMD = getMetadata(oTest) />
+					
+					<cfif structkeyexists(stMD,"displayname")>
+						<cfset componentname = stMD.displayname />
+					<cfelse>
+						<cfset componentname = listlast(stMD.fullname,".") />
+					</cfif>
+					
+					<cfif structkeyexists(stMD,"hint")>
+						<cfset componenthint = stMD.hint />
+					<cfelse>
+						<cfset componenthint = "" />
+					</cfif>
+					
+					<cfif structkeyexists(stMD,"mode")>
+						<cfset componentmode = stMD.mode />
+					<cfelse>
+						<cfset componentmode = "any" />
+					</cfif>
+					
+					<cfloop list="#arraytolist(oTest.getRunnableMethods())#" index="thistest">
+						<cfset testtitle = thistest />
+						<cfset testhint = "" />
+						<cfloop from="1" to="#arraylen(stMD.functions)#" index="i">
+							<cfif stMD.functions[i].name eq thistest>
+								<cfif structkeyexists(stMD.functions[i],"displayname")>
+									<cfset testtitle = stMD.functions[i].displayname />
+								</cfif>
+								<cfif structkeyexists(stMD.functions[i],"hint")>
+									<cfset testhint = stMD.functions[i].hint />
+								</cfif>
+								<cfif structkeyexists(stMD.functions[i],"mode")>
+									<cfset testmode = stMD.functions[i].mode />
+								<cfelse>
+									<cfset testmode = componentmode />
+								</cfif>
 							</cfif>
-							<cfif structkeyexists(stMD.functions[i],"hint")>
-								<cfset testhint = stMD.functions[i].hint />
-							</cfif>
-							<cfif structkeyexists(stMD.functions[i],"mode")>
-								<cfset testmode = stMD.functions[i].mode />
-							<cfelse>
-								<cfset testmode = componentmode />
-							</cfif>
-						</cfif>
+						</cfloop>
+						
+						<cfset queryaddrow(qTests) />
+						<cfset querysetcell(qTests,"id",replace(qTestCases.path,".","","ALL")) />
+						<cfset querysetcell(qTests,"location",location) />
+						<cfset querysetcell(qTests,"componentpath",qTestCases.path) />
+						<cfset querysetcell(qTests,"componentname",componentname) />
+						<cfset querysetcell(qTests,"componenthint",componenthint) />
+						<cfset querysetcell(qTests,"testmethod",thistest) />
+						<cfset querysetcell(qTests,"testname",testtitle) />
+						<cfset querysetcell(qTests,"testhint",testhint) />
+						<cfset querysetcell(qTests,"testmode",testmode) />
 					</cfloop>
 					
-					<cfset queryaddrow(qTests) />
-					<cfset querysetcell(qTests,"id",replace(qTestCases.path,".","","ALL")) />
-					<cfset querysetcell(qTests,"location",location) />
-					<cfset querysetcell(qTests,"componentpath",qTestCases.path) />
-					<cfset querysetcell(qTests,"componentname",componentname) />
-					<cfset querysetcell(qTests,"componenthint",componenthint) />
-					<cfset querysetcell(qTests,"testmethod",thistest) />
-					<cfset querysetcell(qTests,"testname",testtitle) />
-					<cfset querysetcell(qTests,"testhint",testhint) />
-					<cfset querysetcell(qTests,"testmode",testmode) />
-				</cfloop>
+					<cfcatch>
+						<cflog file="testing" text="Error loading #qTestCases.path#">
+					</cfcatch>
+				</cftry>
 			</cfloop>
 		</cfloop>
 		

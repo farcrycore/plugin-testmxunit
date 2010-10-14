@@ -9,7 +9,7 @@
 </cfif>
 
 <cfloop list="#url.tests#" index="thistest">
-	<skin:view objectid="#thistest#" typename="mxTest" webskin="displayAutomatedTest" />
+	<skin:view objectid="#thistest#" typename="mxTest" webskin="displayBodyAutomatedTest" />
 </cfloop>
 
 <cfsetting enablecfoutputonly="false" />

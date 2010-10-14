@@ -10,7 +10,7 @@
 				name="title" type="string" hint="The name of the test set. A set called 'Automatic' should be created automatically"
 				ftValidation="required" />
 	<cfproperty ftSeq="2" ftFieldset="URLs" ftWizardstep="Test" ftLabel="URLs"
-				name="urls" type="longchar" ftHint="One URL on each line, listing the base URLs that this test suite can be run against."
+				name="urls" type="longchar" ftHint="One URL on each line, listing the base URLs that this test suite can be run against. The first URL will be used for automated tests."
 				ftDefault="'http://##cgi.http_host##/'" ftDefaultType="evaluate"
 				ftValidation="required" />
 	<cfproperty ftSeq="3" ftFieldset="Test" ftWizardsetp="Test" ftLabel="Email notification"
@@ -18,6 +18,9 @@
 				ftType="string" ftHint="This is used during automated test runs, not when using the 'Run Tests' option to the right." />
 	<cfproperty ftSeq="4" ftFieldset="Test" ftWizardstep="Test" ftLabel="Tests"
 				name="tests" type="longchar" hint="The tests that are part of the set" />
+	<cfproperty ftSeq="5" ftFieldset="Remote" ftWizardstep="Test" ftLabel="Test Suite Endpoint"
+				name="remoteEndpoint" type="string" hint="URL for running remote tests on the target server"
+				ftHint="There is a link in the top left of the 'Run Tests' page. Copy the query string (the part of the URL after '?') into this field." />
 	
 	<cffunction name="ftEditTests" returntype="string" output="false" access="public" hint="UI for selecting the tests in this set">
 		<cfset var location = "" />
@@ -267,6 +270,136 @@
 				<cfset querysetcell(qTests,"path","#packagepath##listfirst(qFiles.name,'.')#") />
 			</cfif>
 		</cfloop>
+		
+		<cfreturn qTests />
+	</cffunction>
+	
+	<cffunction name="getTestComponents" returntype="struct" output="false" access="public" hint="Returns the components required to run the tests">
+		<cfargument name="tests" type="string" required="true" hint="List of test paths" />
+		
+		<cfset var stTests = structnew() />
+		<cfset var compnentpath = "" />
+		
+		<cfloop list="#arguments.tests#" index="testpath">
+			<cfset componentpath = listdeleteat(testpath,listlen(testpath,"."),".") />
+			<cfif not structkeyexists(stTests,componentpath)>
+				<cfset stTests[componentpath] = createobject("component",componentpath) />
+			</cfif>
+		</cfloop>
+		
+		<cfreturn stTests />
+	</cffunction>
+	
+	<cffunction name="getTestInformation" returntype="query" output="false" access="public" hint="Returns information about the specified tests">
+		<cfargument name="tests" type="string" required="true" hint="List of test paths" />
+		<cfargument name="remoteURL" type="string" required="false" default="" hint="If the endpoint is included, the remote tests are also returned">
+		
+		<cfset var qTests = querynew("remote,id,componentpath,componentname,componenthint,testmethod,testname,testhint,testdependson,url","bit,varchar,varchar,varchar,varchar,varchar,varchar,varchar,varchar,varchar") />
+		<cfset var qRemote = getRemoteTestInformation(arguments.remoteURL) />
+		<cfset var testpath = "" />
+		<cfset var componentpath = "" />
+		<cfset var oTest = "" />
+		<cfset var stMD = "" />
+		<cfset var componentname = "" />
+		<cfset var componenthint = "" />
+		<cfset var thistest = "" />
+		<cfset var testtitle = "" />
+		<cfset var testdependson = "" />
+		<cfset var testhint = "" />
+		<cfset var stTests = structnew() />
+		
+		<cfloop list="#arguments.tests#" index="testpath">
+			<cfset componentpath = listdeleteat(testpath,listlen(testpath,"."),".") />
+			<cfif not structkeyexists(stTests,componentpath)>
+				<cfset stTests[componentpath] = createobject("component",componentpath) />
+			</cfif>
+			<cfset stMD = getMetadata(stTests[componentpath]) />
+			
+			<cfif structkeyexists(stMD,"displayname")>
+				<cfset componentname = stMD.displayname />
+			<cfelse>
+				<cfset componentname = listlast(stMD.fullname,".") />
+			</cfif>
+			
+			<cfif structkeyexists(stMD,"hint")>
+				<cfset componenthint = stMD.hint />
+			<cfelse>
+				<cfset componenthint = "" />
+			</cfif>
+			
+			
+			<cfloop list="#arraytolist(stTests[componentpath].getRunnableMethods())#" index="thistest">
+				<cfif listlast(testpath,".") eq thistest>
+					<cfset testtitle = thistest />
+					<cfset testhint = "" />
+					<cfset testdependson = "" />
+					<cfloop from="1" to="#arraylen(stMD.functions)#" index="i">
+						<cfif stMD.functions[i].name eq thistest>
+							<cfif structkeyexists(stMD.functions[i],"displayname")>
+								<cfset testtitle = stMD.functions[i].displayname />
+							</cfif>
+							<cfif structkeyexists(stMD.functions[i],"hint")>
+								<cfset testhint = stMD.functions[i].hint />
+							</cfif>
+							<cfif structkeyexists(stMD.functions[i],"dependson")>
+								<cfset testdependson = stMD.functions[i].dependson />
+							</cfif>
+						</cfif>
+					</cfloop>
+					
+					<cfset queryaddrow(qTests) />
+					<cfset querysetcell(qTests,"remote",false) />
+					<cfset querysetcell(qTests,"id",replace(testpath,".","","ALL")) />
+					<cfset querysetcell(qTests,"componentpath",componentpath) />
+					<cfset querysetcell(qTests,"componentname",componentname) />
+					<cfset querysetcell(qTests,"componenthint",componenthint) />
+					<cfset querysetcell(qTests,"testmethod",thistest) />
+					<cfset querysetcell(qTests,"testname",testtitle) />
+					<cfset querysetcell(qTests,"testhint",testhint) />
+					<cfset querysetcell(qTests,"testdependson",testdependson) />
+					<cfset querysetcell(qTests,"url","http://#cgi.http_host#/mxunit/runtests.cfm?suite=#componentpath#&test=#thistest#&host=#url.host#&ajaxmode=1&remote=0") />
+				</cfif>
+			</cfloop>
+		</cfloop>
+		
+		<cfquery dbtype="query" name="qTests">
+			select * from qTests
+			union
+			select * from qRemote
+		</cfquery>
+		
+		<cfreturn qTests />
+	</cffunction>
+	
+	<cffunction name="getRemoteTestInformation" returntype="query" output="false" access="public" hint="Returns information about the specified remote tests">
+		<cfargument name="remoteURL" type="string" required="true" hint="The URL to retrieve test information from" />
+		
+		<cfset var cfhttp = structnew() />
+		<cfset var qTests = querynew("remote,id,componentpath,componentname,componenthint,testmethod,testname,testhint,testdependson,url","bit,varchar,varchar,varchar,varchar,varchar,varchar,varchar,varchar,varchar") />
+		<cfset var xmlResult = structnew() />
+		<cfset var thiscomponent = "" />
+		<cfset var thistest = "" />
+		
+		<cfhttp url="#arguments.remoteURL#" />
+		
+		<cfif cfhttp.StatusCode eq "200 Ok">
+			<cfset xmlResult = xmlParse(cfhttp.filecontent) />
+			<cfloop from="1" to="#arraylen(xmlResult.testsuite.component)#" index="thiscomponent">
+				<cfloop from="1" to="#arraylen(xmlResult.testsuite.component[thiscomponent].test)#" index="thistest">
+					<cfset queryaddrow(qTests) />
+					<cfset querysetcell(qTests,"remote",true) />
+					<cfset querysetcell(qTests,"id",xmlResult.testsuite.component[thiscomponent].test[thistest].xmlAttributes.id) />
+					<cfset querysetcell(qTests,"componentpath",xmlResult.testsuite.component[thiscomponent].xmlAttributes.id) />
+					<cfset querysetcell(qTests,"componentname",xmlResult.testsuite.component[thiscomponent].name.xmlText) />
+					<cfset querysetcell(qTests,"componenthint",xmlResult.testsuite.component[thiscomponent].hint.xmlText) />
+					<cfset querysetcell(qTests,"testmethod",listlast(xmlResult.testsuite.component[thiscomponent].test[thistest].xmlAttributes.id,"_")) />
+					<cfset querysetcell(qTests,"testname",xmlResult.testsuite.component[thiscomponent].test[thistest].name.xmlText) />
+					<cfset querysetcell(qTests,"testhint",xmlResult.testsuite.component[thiscomponent].test[thistest].hint.xmlText) />
+					<cfset querysetcell(qTests,"testdependson",xmlResult.testsuite.component[thiscomponent].test[thistest].xmlAttributes.dependson) />
+					<cfset querysetcell(qTests,"url",application.fapi.fixURL(url=xmlResult.testsuite.component[thiscomponent].test[thistest].url.xmlText,addValues="remote=1")) />
+				</cfloop>
+			</cfloop>
+		</cfif>
 		
 		<cfreturn qTests />
 	</cffunction>

@@ -13,9 +13,12 @@
 <cfparam name="url.suite" default="" />
 <cfparam name="url.test" default="" />
 <cfparam name="url.host" default="1" />
+<cfparam name="url.includeremote" default="1" />
 <cfparam name="url.format" default="html" /><!--- html | xml --->
 
 <!--- Get test information --->
+<cfset oMX = application.fapi.getContentType(typename="mxTest") />
+
 <cfset qAllTests = application.fapi.getContentObjects(typename="mxTest",lProperties="objectid,title",orderby="title asc") />
 <cfif not len(url.testset)>
 	<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app">
@@ -25,83 +28,29 @@
 	</cfif>
 </cfif>
 <cfif isvalid("uuid",url.testset)>
-	<cfset stMXTest = createobject("component",application.stCOAPI.mxTest.packagepath).getData(url.testset) />
+	<cfset stMXTest = oMX.getData(url.testset) />
 <cfelseif len(url.testset)>
-	<cfset stMXTest = createobject("component",application.stCOAPI.mxTest.packagepath).getByTitle(url.testset) />
+	<cfset stMXTest = oMX.getByTitle(url.testset) />
 </cfif>
 <cfif not len(stMXTest.urls)>
 	<cfset stMXTest.urls = "http://#cgi.http_host#/" />
 </cfif>
 <cfset baseurl = listgetat(stMXTest.urls,url.host,"#chr(10)##chr(13)#") />
+<cfset request.baseurl = baseurl />
 
-<cfset qTests = querynew("id,componentpath,componentname,componenthint,testmethod,testname,testhint,testdependson") />
-<cfset stTests = structnew() />
-<cfloop list="#stMXTest.tests#" index="testpath">
-	<cfset componentpath = listdeleteat(testpath,listlen(testpath,"."),".") />
-	<cfset oTest = createobject("component",componentpath) />
-	<cfset stMD = getMetadata(oTest) />
-	
-	<cfif structkeyexists(stMD,"displayname")>
-		<cfset componentname = stMD.displayname />
-	<cfelse>
-		<cfset componentname = listlast(stMD.fullname,".") />
-	</cfif>
-	
-	<cfif structkeyexists(stMD,"hint")>
-		<cfset componenthint = stMD.hint />
-	<cfelse>
-		<cfset componenthint = "" />
-	</cfif>
-	
-	<cfset stTests[componentpath] = oTest />
-	
-	<cfloop list="#arraytolist(oTest.getRunnableMethods())#" index="thistest">
-		<cfif listlast(testpath,".") eq thistest>
-			<cfset testtitle = thistest />
-			<cfset testhint = "" />
-			<cfset testdependson = "" />
-			<cfloop from="1" to="#arraylen(stMD.functions)#" index="i">
-				<cfif stMD.functions[i].name eq thistest>
-					<cfif structkeyexists(stMD.functions[i],"displayname")>
-						<cfset testtitle = stMD.functions[i].displayname />
-					</cfif>
-					<cfif structkeyexists(stMD.functions[i],"hint")>
-						<cfset testhint = stMD.functions[i].hint />
-					</cfif>
-					<cfif structkeyexists(stMD.functions[i],"hint")>
-						<cfset testhint = stMD.functions[i].hint />
-					</cfif>
-					<cfif structkeyexists(stMD.functions[i],"dependson")>
-						<cfset testdependson = stMD.functions[i].dependson />
-					</cfif>
-				</cfif>
-			</cfloop>
-			
-			<cfset queryaddrow(qTests) />
-			<cfset querysetcell(qTests,"id",replace(testpath,".","","ALL")) />
-			<cfset querysetcell(qTests,"componentpath",componentpath) />
-			<cfset querysetcell(qTests,"componentname",componentname) />
-			<cfset querysetcell(qTests,"componenthint",componenthint) />
-			<cfset querysetcell(qTests,"testmethod",thistest) />
-			<cfset querysetcell(qTests,"testname",testtitle) />
-			<cfset querysetcell(qTests,"testhint",testhint) />
-			<cfset querysetcell(qTests,"testdependson",testdependson) />
-		</cfif>
-	</cfloop>
-</cfloop>
-
+<cfif url.includeremote>
+	<cfset remoteURL = "#baseurl#mxunit/runtests.cfm?includeremote=0&format=xml&testformat=html&#stMXTest.remoteEndpoint#" />
+<cfelse>
+	<cfset remoteURL = "" />
+</cfif>
+<cfset qTests = oMX.getTestInformation(stMXTest.tests,remoteURL) />
+<cfset stTests = oMX.getTestComponents(stMXTest.tests) />
 
 <cfif len(url.suite) and len(url.test)>
-
+	
 	<cfset testSuite = createObject("component","mxunit.framework.TestSuite").TestSuite() />
 	
 	<cfset testSuite.add(url.suite,url.test,stTests[url.suite]) />
-	
-	<cfif isdefined("url.baseurl")>
-		<cfset request.baseurl = url.baseurl />
-	<cfelse>
-		<cfset request.baseurl = baseurl />
-	</cfif>
 	
 	<cfset results = testSuite.run(testMethod=url.test) />
 	<cfset qResults = results.getResultsOutput('query') /><!--- html | extjs | xml | junitxml | query | array --->
@@ -116,7 +65,14 @@
 		<cfcase value="html">
 			<cfoutput>
 				<div class="testresult #qResults.teststatus#">
-					<div class="componentname"><a title="#qTests.componenthint#">#qTests.componentname#</a></div>
+					<div class="componentname">
+						<cfif url.remote>
+							<a title="Test on server" class="ui-icon ui-icon-circlesmall-close" style="float:left;"></a>
+						<cfelse>
+							<a title="External test" class="ui-icon ui-icon-extlink" style="float:left;"></a>
+						</cfif>
+						<a title="#qTests.componenthint#">#qTests.componentname#</a>
+					</div>
 					<div class="testname"><a title="#qTests.testhint#">#qTests.testname#</a></div>
 					<div class="testtime"><cfif qResults.time lt 500>#qResults.time#ms<cfelseif qResults.time lt 61000>#numberformat(qResults.time/1000,"0.9")#s<cfelse>#round(qResults.time/60000)#:#round((qResults.time-60000)/1000)#min</cfif></div>
 					<div class="moredetail"><cfif listcontainsnocase("Failed,Error",qResults.teststatus)><a href="##" onclick="$j('###qTests.id#_#qTests.testmethod# .detail').toggle();return false;"></cfif>#qResults.teststatus#<cfif listcontainsnocase("Failed,Error",qResults.teststatus)> (more detail)</a></cfif></div>
@@ -129,7 +85,7 @@
 			<cfsavecontent variable="xmlout">
 				<cfoutput>
 					<?xml version="1.0" encoding="utf-8" ?>
-					<testresult id="#qTests.id#_#qTests.testmethod#">
+					<testresult id="#qTests.id#_#qTests.testmethod#" remote="#url.remote#">
 						<status>#qResults.teststatus#</status>
 						<time>#qResults.time#</time>
 						<details><![CDATA[<cfif listcontainsnocase("Failed,Error",qResults.teststatus)>#qResults.error#</cfif>]]></details>
@@ -146,7 +102,7 @@
 	<cfquery dbtype="query" name="qTests">
 		select		*
 		from		qTests
-		order by	componentname asc, testname asc
+		order by	remote asc, componentname asc, testname asc
 	</cfquery>
 	
 	<cfswitch expression="#url.format#">
@@ -192,6 +148,9 @@
 					<body>
 						<table width="100%">
 							<tr>
+								<td width="20px">
+									<a href="#application.url.webroot#/mxunit/runtests.cfm?testset=#urlencodedformat(stMXTest.title)#&host=#url.host#" class="ui-state-default ui-icon ui-icon-link">Link</a>
+								</td>
 								<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app" and listlen(stMXTest.urls,"#chr(10)##(chr(13))#")>
 									<td width="200px">
 										<select id="testset" style="width:100%;" onchange="window.location.href=this.value;">
@@ -203,9 +162,9 @@
 								</cfif>
 								<td width="200px">
 									<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app" and listlen(stMXTest.urls,"#chr(10)##(chr(13))#") gt 1>
-										<select id="baseurl" style="width:100%;">
-											<cfloop list="#stMXTest.urls#" delimiters="#chr(10)##(chr(13))#" index="thisbaseurl">
-												<option value="#thisbaseurl#"<cfif thisbaseurl eq baseurl> selected</cfif>>#thisbaseurl#</option>
+										<select id="baseurl" style="width:100%;" onchange="window.location.href=this.value;">
+											<cfloop from="1" to="#listlen(stMXTest.urls,'#chr(10)##(chr(13))#')#" index="thisbaseurl">
+												<option value="#application.fapi.fixURL(url=application.fapi.getLink(),addvalues='host=#thisbaseurl#')#"<cfif thisbaseurl eq url.host> selected</cfif>>#listgetat(stMXTest.urls,thisbaseurl,'#chr(10)##(chr(13))#')#</option>
 											</cfloop>
 										</select>
 									<cfelse>
@@ -237,11 +196,13 @@
 						<cfloop query="qTests">
 							tests.push({
 								id:'#qTests.id#',
+								remote:#qTests.remote#,
 								componentpath:'#qTests.componentpath#',
 								componentname:'#qTests.componentname#',
 								testmethod:'#qTests.testmethod#',
 								testname:'#qTests.testname#',
 								testdependson:'#qTests.testdependson#',
+								url:'#jsstringformat(qTests.url)#',
 								result:0 // -3:unrunnable,-2:error,-1:failure,0:waiting,1:success
 							});
 						</cfloop>
@@ -259,7 +220,7 @@
 								for (var i=0;i<dependencies.length;i++){
 									var testfound = false;
 									for (var j=0;j<tests.length;j++){
-										if (tests[j].componentpath==tests[index].componentpath && tests[j].testmethod==dependencies[i]){
+										if (tests[j].remote==tests[index].remote && tests[j].componentpath==tests[index].componentpath && tests[j].testmethod==dependencies[i]){
 											if (tests[j].result==0) { // dependency hasn't been run: not ready
 												if (killwaiting) {
 													tests[index].result = -3;
@@ -336,7 +297,7 @@
 								if (bRunning){
 									$j.ajax({
 										success:displayTestResult,
-										url:'#cgi.SCRIPT_NAME#?#cgi.QUERY_STRING#&suite='+tests[index].componentpath+'&test='+tests[index].testmethod+'&baseurl='+encodeURI(baseurl)+'&ajaxmode=1'
+										url:tests[index].url
 									});
 								}
 							};
@@ -405,12 +366,19 @@
 			</skin:htmlHead>
 			
 			<cfoutput query="qTests" group="id">
-				<div class="component" id="#qTests.id#">
+				<div class="component" id="#rereplace(qTests.componentname,'[^\w]*','','all')#">
 					<cfoutput>
-						<div id="#qTests.id#_#qTests.testmethod#">
+						<div id="#rereplace(qTests.id,'[^\w]*','','all')#_#qTests.testmethod#">
 							<div class="testresult Waiting">
 								<input type="hidden" name="dependson" value="#qTests.testdependson#" />
-								<div class="componentname"><a title="#qTests.componenthint#">#qTests.componentname#</a></div>
+								<div class="componentname">
+									<cfif qTests.remote>
+										<a title="Test on server" class="ui-icon ui-icon-circlesmall-close" style="float:left;"></a>
+									<cfelse>
+										<a title="External test" class="ui-icon ui-icon-extlink" style="float:left;"></a>
+									</cfif>
+									<a title="#qTests.componenthint#">#qTests.componentname#</a>
+								</div>
 								<div class="testname"><a title="#qTests.testhint#">#qTests.testname#</a></div>
 								<div class="testtime">&nbsp;</div>
 								<div class="moredetail">Queued</div>
@@ -429,22 +397,25 @@
 
 		</cfcase>
 		<cfcase value="xml">
+			<cfparam name="url.testformat" default="#url.format#" />
 			<cfsavecontent variable="xmlout">
 				<cfoutput>
 					<?xml version="1.0" encoding="utf-8" ?>
 					<testsuite>
 				</cfoutput>
 				
-				<cfoutput query="qTests" group="id">
-					<component id="#qTests.id#"><cfoutput>
+				<cfoutput query="qTests" group="componentpath">
+					<component id="#rereplace(qTests.componentname,'[^\w]*','','all')#">
 						<name><![CDATA[#qTests.componentname#]]></name>
 						<hint><![CDATA[#qTests.componenthint#]]></hint>
 						
-						<test id="#qTests.id#_#qTests.testmethod#">
-							<name><![CDATA[#qTests.testname#]]></name>
-							<hint><![CDATA[#qTests.testhint#]]></hint>
-							<url>#xmlformat('#cgi.SCRIPT_NAME#?#cgi.QUERY_STRING#&suite=#qTests.componentpath#&test=#qTests.testMethod#')#</url>
-						</test></cfoutput>
+						<cfoutput>
+							<test id="#qTests.id#_#qTests.testmethod#" dependson="#qTests.testdependson#">
+								<name><![CDATA[#qTests.testname#]]></name>
+								<hint><![CDATA[#qTests.testhint#]]></hint>
+								<url>#xmlformat('#qTests.url#&format=#url.testformat#')#</url>
+							</test>
+						</cfoutput>
 					</component>
 				</cfoutput>
 				

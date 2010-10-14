@@ -121,24 +121,29 @@
 	
 	<cfoutput>
 		#resulthtml#
-		<h2>Notifications</h2>
-		<ul>
 	</cfoutput>
 	
-	<cfloop list="#stObj.notification#" index="thisnot">
-		<cftry>
-			<cfmail to="#thisnot#" from="#application.config.general.adminemail#" type="html" subject="#stObj.title#: Test Results for #dateformat(now(),'full')#">
-				#resulthtml#
-			</cfmail>
-			<cfoutput><li>Notified #thisnot#</li></cfoutput>
-			
-			<cfcatch>
-				<cfoutput><li>Failed to notify #thisnot# (#cfcatch.message#)</li></cfoutput>
-			</cfcatch>
-		</cftry>
-	</cfloop>
-	
-	<cfoutput></ul></cfoutput>
+	<cfif qTests.recordcount>
+		<cfoutput>
+			<h2>Notifications</h2>
+			<ul>
+		</cfoutput>
+		
+		<cfloop list="#stObj.notification#" index="thisnot">
+			<cftry>
+				<cfmail to="#thisnot#" from="#application.config.general.adminemail#" type="html" subject="#stObj.title#: Test Results for #dateformat(now(),'full')#">
+					#resulthtml#
+				</cfmail>
+				<cfoutput><li>Notified #thisnot#</li></cfoutput>
+				
+				<cfcatch>
+					<cfoutput><li>Failed to notify #thisnot# (#cfcatch.message#)</li></cfoutput>
+				</cfcatch>
+			</cftry>
+		</cfloop>
+		
+		<cfoutput></ul></cfoutput>
+	</cfif>
 </cfif>
 
 <cfsetting enablecfoutputonly="false" />

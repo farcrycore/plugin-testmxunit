@@ -38,13 +38,13 @@
 <cfset baseurl = listgetat(stMXTest.urls,url.host,"#chr(10)##chr(13)#") />
 <cfset request.baseurl = baseurl />
 
-<cfif url.includeremote>
-	<cfset remoteURL = "#baseurl#mxunit/runtests.cfm?includeremote=0&format=xml&testformat=html&#stMXTest.remoteEndpoint#" />
+<cfif url.includeremote and len(stMXTest.remoteEndpoint)>
+	<cfset remoteURL = "#baseurl#mxunit/runtests.cfm?format=xml&testformat=html" />
 <cfelse>
 	<cfset remoteURL = "" />
 </cfif>
-<cfset qTests = oMX.getTestInformation(stMXTest.tests,remoteURL) />
-<cfset stTests = oMX.getTestComponents(stMXTest.tests) />
+<cfset qTests = oMX.getTestInformation(stMXTest,remoteURL) />
+<cfset stTests = oMX.getTestComponents(stMXTest) />
 
 <cfif len(url.suite) and len(url.test)>
 	
@@ -155,7 +155,7 @@
 									<td width="200px">
 										<select id="testset" style="width:100%;" onchange="window.location.href=this.value;">
 											<cfloop query="qAllTests">
-												<option value="#application.fapi.fixURL(url=application.fapi.getLink(),addvalues='testset=#qAllTests.objectid#')#"<cfif url.testset eq qAllTests.objectid> selected</cfif>>#qAllTests.title#</option>
+												<option value="#application.url.webroot#/mxunit/runtests.cfm?testset=#qAllTests.objectid#&host=#url.host#"<cfif url.testset eq qAllTests.objectid> selected</cfif>>#qAllTests.title#</option>
 											</cfloop>
 										</select>
 									</td>
@@ -164,7 +164,7 @@
 									<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app" and listlen(stMXTest.urls,"#chr(10)##(chr(13))#") gt 1>
 										<select id="baseurl" style="width:100%;" onchange="window.location.href=this.value;">
 											<cfloop from="1" to="#listlen(stMXTest.urls,'#chr(10)##(chr(13))#')#" index="thisbaseurl">
-												<option value="#application.fapi.fixURL(url=application.fapi.getLink(),addvalues='host=#thisbaseurl#')#"<cfif thisbaseurl eq url.host> selected</cfif>>#listgetat(stMXTest.urls,thisbaseurl,'#chr(10)##(chr(13))#')#</option>
+												<option value="#application.url.webroot#/mxunit/runtests.cfm?testset=#url.testset#&host=#thisbaseurl#"<cfif thisbaseurl eq url.host> selected</cfif>>#listgetat(stMXTest.urls,thisbaseurl,'#chr(10)##(chr(13))#')#</option>
 											</cfloop>
 										</select>
 									<cfelse>
@@ -330,7 +330,7 @@
 								$("div.testresult").removeClass("Error").removeClass("Passed").removeClass("Failed").removeClass("Unrunnable").addClass("Waiting")
 									.find("div.testtime").html("&nbsp;").end()
 									.find("div.moredetail").html("Queued").end()
-									.find("div.detail").html("").end();
+									.find("div.detail").html("").hide().end();
 								
 								$j("##action-play-pause").removeClass("ui-state-disabled").addClass('ui-state-default');
 								

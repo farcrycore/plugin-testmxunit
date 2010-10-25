@@ -16,9 +16,9 @@
 	<cfelse>
 		<ft:object typename="mxTest" stObject="#stObj#" lfields="notification,tests" />
 	</cfif>
-	<ft:farcryButtonPanel>
-		<ft:farcryButton value="Save Configuration" />
-	</ft:farcryButtonPanel>
+	<ft:buttonPanel>
+		<ft:button value="Save Configuration" />
+	</ft:buttonPanel>
 </ft:form>
 
 <cfsetting enablecfoutputonly="false" />

@@ -96,7 +96,7 @@
 				
 				<label class="testlocation" style="font-weight:bold;text-align:left;">
 					<input type="checkbox" name="selectlocation" id="all#qTests.location#" onclick="selectTests(this.checked,'#qTests.location#');" />
-					#ucase(qTests.location)# 
+					#qTests.locationlabel# 
 					<a href="##" class="location#qTests.location#info" onclick="$j('##location#qTests.location#').toggle();return false">0/0</a>
 				</label>
 				
@@ -150,7 +150,7 @@
 		<cfargument name="mode" type="string" required="false" default="any" hint="Filters results to specific a speicfic testing mode. 'self' indicates a test that can only be run in Self Testing mode, 'app' indicates a test that can only be run in Test Appliance mode, and the default 'any' indicates a test that can be run in any mode." />
 		
 		<cfset var location = "" />
-		<cfset var qTests = querynew("id,location,componentpath,componentname,componenthint,testmethod,testname,testhint,testmode") />
+		<cfset var qTests = querynew("id,location,locationlabel,componentpath,componentname,componenthint,testmethod,testname,testhint,testmode") />
 		<cfset var oTest = "" />
 		<cfset var stMD = structnew() />
 		<cfset var componentname = "" />
@@ -209,6 +209,7 @@
 						<cfset queryaddrow(qTests) />
 						<cfset querysetcell(qTests,"id",replace(qTestCases.path,".","","ALL")) />
 						<cfset querysetcell(qTests,"location",location) />
+						<cfset querysetcell(qTests,"locationlabel",qTestCases.locationlabel) />
 						<cfset querysetcell(qTests,"componentpath",qTestCases.path) />
 						<cfset querysetcell(qTests,"componentname",componentname) />
 						<cfset querysetcell(qTests,"componenthint",componenthint) />
@@ -240,24 +241,38 @@
 		<cfargument name="location" type="string" required="true" hint="The location to search (core | pluginname | project)" />
 		
 		<cfset var qFiles = querynew("empty") />
-		<cfset var qTests = querynew("location,path","varchar,varchar") />
+		<cfset var qTests = querynew("location,locationlabel,path","varchar,varchar,varchar") />
 		<cfset var stMD = structnew() />
 		<cfset var packagepath = "" />
+		<cfset var locationlabel = "" />
+		<cfset var oManifest = "" />
 		
 		<cfswitch expression="#location#">
 			<cfcase value="core">
 				<cfdirectory action="list" directory="#application.path.core#/tests" filter="*.cfc" name="qFiles" />
 				<cfset packagepath = "farcry.core.tests." />
+				<cfset locationlabel = "Core" />
 			</cfcase>
 			
 			<cfcase value="project">
 				<cfdirectory action="list" directory="#application.path.project#/tests" filter="*.cfc" name="qFiles" />
 				<cfset packagepath = "farcry.projects.#application.projectdirectoryname#.tests." />
+				<cfset locationlabel = "Project" />
 			</cfcase>
 			
 			<cfdefaultcase><!--- plugin --->
 				<cfdirectory action="list" directory="#application.path.plugins#/#arguments.location#/tests" filter="*.cfc" name="qFiles" />
 				<cfset packagepath = "farcry.plugins.#arguments.location#.tests." />
+				<cfif fileexists(expandpath("/farcry/plugins/#arguments.location#/install/manifest.cfc"))>
+					<cfset oManifest = createobject("component","farcry.plugins.#arguments.location#.install.manifest") />
+					<cfif structkeyexists(oManifest,"name")>
+						<cfset locationlabel = oManifest.name />
+					<cfelse>
+						<cfset locationlabel = arguments.location />
+					</cfif>
+				<cfelse>
+					<cfset locationlabel = arguments.location />
+				</cfif>
 			</cfdefaultcase>
 		</cfswitch>
 		
@@ -267,6 +282,7 @@
 			<cfif not structkeyexists(stMD,"bAbstract") or not stMD.bAbstract>
 				<cfset queryaddrow(qTests) />
 				<cfset querysetcell(qTests,"location",arguments.location) />
+				<cfset querysetcell(qTests,"locationlabel",locationlabel) />
 				<cfset querysetcell(qTests,"path","#packagepath##listfirst(qFiles.name,'.')#") />
 			</cfif>
 		</cfloop>
@@ -275,12 +291,12 @@
 	</cffunction>
 	
 	<cffunction name="getTestComponents" returntype="struct" output="false" access="public" hint="Returns the components required to run the tests">
-		<cfargument name="tests" type="string" required="true" hint="List of test paths" />
+		<cfargument name="testcase" type="struct" required="true" hint="MX Unit Tests object" />
 		
 		<cfset var stTests = structnew() />
-		<cfset var compnentpath = "" />
+		<cfset var componentpath = "" />
 		
-		<cfloop list="#arguments.tests#" index="testpath">
+		<cfloop list="#arguments.testcase.tests#" index="testpath">
 			<cfset componentpath = listdeleteat(testpath,listlen(testpath,"."),".") />
 			<cfif not structkeyexists(stTests,componentpath)>
 				<cfset stTests[componentpath] = createobject("component",componentpath) />
@@ -291,11 +307,11 @@
 	</cffunction>
 	
 	<cffunction name="getTestInformation" returntype="query" output="false" access="public" hint="Returns information about the specified tests">
-		<cfargument name="tests" type="string" required="true" hint="List of test paths" />
+		<cfargument name="testcase" type="struct" required="true" hint="MX Unit Tests object" />
 		<cfargument name="remoteURL" type="string" required="false" default="" hint="If the endpoint is included, the remote tests are also returned">
 		
 		<cfset var qTests = querynew("remote,id,componentpath,componentname,componenthint,testmethod,testname,testhint,testdependson,url","bit,varchar,varchar,varchar,varchar,varchar,varchar,varchar,varchar,varchar") />
-		<cfset var qRemote = getRemoteTestInformation(arguments.remoteURL) />
+		<cfset var qRemote = getRemoteTestInformation(arguments.remoteURL & "&includeremote=0&#arguments.testcase.remoteEndpoint#") />
 		<cfset var testpath = "" />
 		<cfset var componentpath = "" />
 		<cfset var oTest = "" />
@@ -308,7 +324,7 @@
 		<cfset var testhint = "" />
 		<cfset var stTests = structnew() />
 		
-		<cfloop list="#arguments.tests#" index="testpath">
+		<cfloop list="#arguments.testcase.tests#" index="testpath">
 			<cfset componentpath = listdeleteat(testpath,listlen(testpath,"."),".") />
 			<cfif not structkeyexists(stTests,componentpath)>
 				<cfset stTests[componentpath] = createobject("component",componentpath) />
@@ -357,7 +373,7 @@
 					<cfset querysetcell(qTests,"testname",testtitle) />
 					<cfset querysetcell(qTests,"testhint",testhint) />
 					<cfset querysetcell(qTests,"testdependson",testdependson) />
-					<cfset querysetcell(qTests,"url","http://#cgi.http_host#/mxunit/runtests.cfm?suite=#componentpath#&test=#thistest#&host=#url.host#&ajaxmode=1&remote=0") />
+					<cfset querysetcell(qTests,"url","http://#cgi.http_host#/mxunit/runtests.cfm?testset=#arguments.testcase.objectid#&suite=#componentpath#&test=#thistest#&host=#url.host#&ajaxmode=1&remote=0") />
 				</cfif>
 			</cfloop>
 		</cfloop>
@@ -384,21 +400,23 @@
 		
 		<cfif cfhttp.StatusCode eq "200 Ok">
 			<cfset xmlResult = xmlParse(cfhttp.filecontent) />
-			<cfloop from="1" to="#arraylen(xmlResult.testsuite.component)#" index="thiscomponent">
-				<cfloop from="1" to="#arraylen(xmlResult.testsuite.component[thiscomponent].test)#" index="thistest">
-					<cfset queryaddrow(qTests) />
-					<cfset querysetcell(qTests,"remote",true) />
-					<cfset querysetcell(qTests,"id",xmlResult.testsuite.component[thiscomponent].test[thistest].xmlAttributes.id) />
-					<cfset querysetcell(qTests,"componentpath",xmlResult.testsuite.component[thiscomponent].xmlAttributes.id) />
-					<cfset querysetcell(qTests,"componentname",xmlResult.testsuite.component[thiscomponent].name.xmlText) />
-					<cfset querysetcell(qTests,"componenthint",xmlResult.testsuite.component[thiscomponent].hint.xmlText) />
-					<cfset querysetcell(qTests,"testmethod",listlast(xmlResult.testsuite.component[thiscomponent].test[thistest].xmlAttributes.id,"_")) />
-					<cfset querysetcell(qTests,"testname",xmlResult.testsuite.component[thiscomponent].test[thistest].name.xmlText) />
-					<cfset querysetcell(qTests,"testhint",xmlResult.testsuite.component[thiscomponent].test[thistest].hint.xmlText) />
-					<cfset querysetcell(qTests,"testdependson",xmlResult.testsuite.component[thiscomponent].test[thistest].xmlAttributes.dependson) />
-					<cfset querysetcell(qTests,"url",application.fapi.fixURL(url=xmlResult.testsuite.component[thiscomponent].test[thistest].url.xmlText,addValues="remote=1")) />
+			<cfif structkeyexists(xmlResult.testsuite,"component")>
+				<cfloop from="1" to="#arraylen(xmlResult.testsuite.component)#" index="thiscomponent">
+					<cfloop from="1" to="#arraylen(xmlResult.testsuite.component[thiscomponent].test)#" index="thistest">
+						<cfset queryaddrow(qTests) />
+						<cfset querysetcell(qTests,"remote",true) />
+						<cfset querysetcell(qTests,"id",xmlResult.testsuite.component[thiscomponent].test[thistest].xmlAttributes.id) />
+						<cfset querysetcell(qTests,"componentpath",xmlResult.testsuite.component[thiscomponent].xmlAttributes.id) />
+						<cfset querysetcell(qTests,"componentname",xmlResult.testsuite.component[thiscomponent].name.xmlText) />
+						<cfset querysetcell(qTests,"componenthint",xmlResult.testsuite.component[thiscomponent].hint.xmlText) />
+						<cfset querysetcell(qTests,"testmethod",listlast(xmlResult.testsuite.component[thiscomponent].test[thistest].xmlAttributes.id,"_")) />
+						<cfset querysetcell(qTests,"testname",xmlResult.testsuite.component[thiscomponent].test[thistest].name.xmlText) />
+						<cfset querysetcell(qTests,"testhint",xmlResult.testsuite.component[thiscomponent].test[thistest].hint.xmlText) />
+						<cfset querysetcell(qTests,"testdependson",xmlResult.testsuite.component[thiscomponent].test[thistest].xmlAttributes.dependson) />
+						<cfset querysetcell(qTests,"url",application.fapi.fixURL(url=xmlResult.testsuite.component[thiscomponent].test[thistest].url.xmlText,addValues="remote=1")) />
+					</cfloop>
 				</cfloop>
-			</cfloop>
+			</cfif>
 		</cfif>
 		
 		<cfreturn qTests />

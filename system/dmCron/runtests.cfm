@@ -4,7 +4,7 @@
 <cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
 
 <cfif not structkeyexists(url,"tests")>
-	<cfset qTests = application.fapi.getContentObjects(typename="mxTest",notification_neq="") />
+	<cfset qTests = application.fapi.getContentObjects(typename="mxTest",notification_like="%") />
 	<cfset url.tests = valuelist(qTests.objectid) />
 </cfif>
 

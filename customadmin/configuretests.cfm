@@ -28,7 +28,7 @@
 		<ft:objectadmin 
 			typename="mxTest"
 			title="Configure Tests"
-			columnList="title,urls" 
+			columnList="title,urls,bAutomated,notification" 
 			sortableColumns="title"
 			lFilterFields="title,urls"
 			stFilterMetaData="#stFilterMetaData#"

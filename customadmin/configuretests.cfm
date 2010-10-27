@@ -29,6 +29,7 @@
 			typename="mxTest"
 			title="Configure Tests"
 			columnList="title,urls,bAutomated,notification" 
+			lCustomColumns="Nightly Test Results:cellLastAutomatedTestRun"
 			sortableColumns="title"
 			lFilterFields="title,urls"
 			stFilterMetaData="#stFilterMetaData#"

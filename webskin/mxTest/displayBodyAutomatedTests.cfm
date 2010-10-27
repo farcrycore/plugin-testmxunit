@@ -6,7 +6,12 @@
 <cfelse>
 	
 	<cfset url.host = 1 />
-	<cfset qTests = getTestInformation(stObj.tests,"#listgetat(stObj.urls,1,'#chr(10)##chr(13)#')#mxunit/runtests.cfm?includeremote=0&format=xml&#stObj.remoteEndpoint#")>
+	<cfif len(stObj.remoteEndpoint)>
+		<cfset stLocal.remoteURL = "#listgetat(stObj.urls,1,'#chr(10)##chr(13)#')#mxunit/runtests.cfm?includeremote=0&format=xml" />
+	<cfelse>
+		<cfset stLocal.remoteURL = "" />
+	</cfif>
+	<cfset qTests = getTestInformation(stObj,stLocal.remoteURL)>
 	
 	<cfset stResults = structnew() />
 	<cfquery dbtype="query" name="qTests">

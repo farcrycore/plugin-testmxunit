@@ -1,5 +1,6 @@
 <cfsetting enablecfoutputonly="true" requesttimeout="2000">
 <!--- @@displayname: Automated test run --->
+<!--- @@viewstack: body --->
 
 <cfif not application.security.isLoggedIn() and not isdefined("url.updateapp") and not url.updateapp eq application.updateappkey>
 	<cfoutput>You do not have permission to access this functionality</cfoutput>
@@ -14,10 +15,21 @@
 	<cfset qTests = getTestInformation(stObj,stLocal.remoteURL)>
 	
 	<cfset stResults = structnew() />
+	<cfset aResults = arraynew(1) />
 	<cfquery dbtype="query" name="qTests">
 		select	*,'' as result
 		from	qTests
 	</cfquery>
+	
+	<cfset stTestResult = structnew() />
+	<cfset stTestResult.objectid = createuuid() />
+	<cfset stTestResult.typename = "mxTestResult" />
+	<cfset stTestResult.mxTestID = stObj.objectid />
+	<cfset stTestResult.numberPassed = 0 />
+	<cfset stTestResult.numberDependency = 0 />
+	<cfset stTestResult.numberFailed = 0 />
+	<cfset stTestResult.numberErrored = 0 />
+	<cfset stTestResult.details = "" />
 	
 	<cfset start = now() />
 	<cfloop condition="qTests.recordcount neq structcount(stResults) and now() lt dateadd('s',99900,start)">
@@ -29,10 +41,13 @@
 						<cfset bReady = false />
 						<cfset stResult = structnew() />
 						<cfset stResult.index = qTests.currentrow />
+						<cfset stResult.name = "#qTests.componentname#: #qTests.testname#" />
 						<cfset stResult.status = "Dependency failure" />
 						<cfset stResult.message = "This test depends on a test that failed [#dependency#]" />
 						<cfset stResults[hash("#qTests.remote#-#qTests.componentname#-#qTests.testmethod#")] = stResult />
+						<cfset arrayappend(aResults,stResult) />
 						<cfset querysetcell(qTests,"result",stResult.status,qTests.currentrow) />
+						<cfset stTestResult.numberDependency = stTestResult.numberDependency + 1 />
 						<cfbreak />
 					</cfif>
 				<cfelse>
@@ -47,25 +62,44 @@
 						<cfset xmlTest = xmlParse(cfhttp.filecontent) />
 						<cfset stResult = structnew() />
 						<cfset stResult.index = qTests.currentrow />
+						<cfset stResult.name = "#qTests.componentname#: #qTests.testname#" />
 						<cfset stResult.status = xmlTest.testresult.status.xmlText />
 						<cfset stResult.message = xmlTest.testresult.details.xmlText />
 						<cfset stResults[hash("#qTests.remote#-#qTests.componentname#-#qTests.testmethod#")] = stResult />
+						<cfset arrayappend(aResults,stResult) />
 						<cfset querysetcell(qTests,"result",stResult.status,qTests.currentrow) />
+						<cfswitch expression="#stResult.status#">
+							<cfcase value="Passed">
+								<cfset stTestResult.numberPassed = stTestResult.numberPassed + 1 />
+							</cfcase>
+							<cfcase value="Failed">
+								<cfset stTestResult.numberFailed = stTestResult.numberFailed + 1 />
+							</cfcase>
+							<cfcase value="Error">
+								<cfset stTestResult.numberErrored = stTestResult.numberErrored + 1 />
+							</cfcase>
+						</cfswitch>
 					<cfelse>
 						<cfset stResult = structnew() />
 						<cfset stResult.index = qTests.currentrow />
+						<cfset stResult.name = "#qTests.componentname#: #qTests.testname#" />
 						<cfset stResult.status = "Error" />
 						<cfset stResult.message = "Result returned from test URL was not valid XML [#application.fapi.fixURL(url=qTests.url,addValues='format=xml')#]" />
 						<cfset stResults[hash("#qTests.remote#-#qTests.componentname#-#qTests.testmethod#")] = stResult />
+						<cfset arrayappend(aResults,stResult) />
 						<cfset querysetcell(qTests,"result",stResult.status,qTests.currentrow) />
+						<cfset stTestResult.numberErrored = stTestResult.numberErrored + 1 />
 					</cfif>
 				<cfelse>
 					<cfset stResult = structnew() />
 					<cfset stResult.index = qTests.currentrow />
+					<cfset stResult.name = "#qTests.componentname#: #qTests.testname#" />
 					<cfset stResult.status = "Error" />
 					<cfset stResult.message = "Could not connect to test URL [#application.fapi.fixURL(url=qTests.url,addValues='format=xml')#]" />
 					<cfset stResults[hash("#qTests.remote#-#qTests.componentname#-#qTests.testmethod#")] = stResult />
+					<cfset arrayappend(aResults,stResult) />
 					<cfset querysetcell(qTests,"result",stResult.status,qTests.currentrow) />
+					<cfset stTestResult.numberErrored = stTestResult.numberErrored + 1 />
 				</cfif>
 			</cfif>
 		</cfloop>
@@ -75,12 +109,18 @@
 		<cfif not structkeyexists(stResults,hash("#qTests.remote#-#qTests.componentname#-#qTests.testmethod#"))>
 			<cfset stResult = structnew() />
 			<cfset stResult.index = qTests.currentrow />
+			<cfset stResult.name = "#qTests.componentname#: #qTests.testname#" />
 			<cfset stResult.status = "Error" />
 			<cfset stResult.message = "Tests timed out before this test could be completed" />
 			<cfset stResults[hash("#qTests.remote#-#qTests.componentname#-#qTests.testmethod#")] = stResult />
+			<cfset arrayappend(aResults,stResult) />
 			<cfset querysetcell(qTests,"result",stResult.status,qTests.currentrow) />
+			<cfset stTestResult.numberErrored = stTestResult.numberErrored + 1 />
 		</cfif>
 	</cfloop>
+	
+	<cfwddx action="cfml2wddx" input="#aResults#" output="stTestResult.details" />
+	<cfset application.fapi.getContentType(typename="mxTestResult").setData(stProperties=stTestResult) />
 	
 	<cfquery dbtype="query" name="qTestPassed">
 		select	*

@@ -13,14 +13,19 @@
 				name="urls" type="longchar" ftHint="One URL on each line, listing the base URLs that this test suite can be run against. The first URL will be used for automated tests."
 				ftDefault="'http://##cgi.http_host##/'" ftDefaultType="evaluate"
 				ftValidation="required" />
-	<cfproperty ftSeq="3" ftFieldset="Test" ftWizardsetp="Test" ftLabel="Email notification"
-				name="notification" type="longchar" hint="The email addresses to send the unit test results"
-				ftType="string" ftHint="This is used during automated test runs, not when using the 'Run Tests' option to the right." />
-	<cfproperty ftSeq="4" ftFieldset="Test" ftWizardstep="Test" ftLabel="Tests"
+	<cfproperty ftSeq="3" ftFieldset="Test" ftWizardstep="Test" ftLabel="Tests"
 				name="tests" type="longchar" hint="The tests that are part of the set" />
-	<cfproperty ftSeq="5" ftFieldset="Remote" ftWizardstep="Test" ftLabel="Test Suite Endpoint"
+	<cfproperty ftSeq="4" ftFieldset="Remote" ftWizardstep="Test" ftLabel="Test Suite Endpoint"
 				name="remoteEndpoint" type="string" hint="URL for running remote tests on the target server"
 				ftHint="There is a link in the top left of the 'Run Tests' page. Copy the query string (the part of the URL after '?') into this field." />
+	
+	<cfproperty ftSeq="11" ftFieldset="Automation" ftWizardstep="Test" ftLabel="Run as part of nightly tests"
+				name="bAutomated" type="boolean"
+				ftHint="If you have automated nightly tests set up, use this flag to indicate whether this test case should be included." />
+	<cfproperty ftSeq="12" ftFieldset="Automation" ftWizardstep="Test" ftLabel="Email notification"
+				name="notification" type="longchar" hint="The email addresses to send the unit test results"
+				ftType="string" ftHint="This is used during automated test runs, not when using the 'Run Tests' option to the right." />
+	
 	
 	<cffunction name="ftEditTests" returntype="string" output="false" access="public" hint="UI for selecting the tests in this set">
 		<cfset var location = "" />

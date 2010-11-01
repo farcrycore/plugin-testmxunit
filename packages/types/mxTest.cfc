@@ -158,6 +158,7 @@
 		<cfset var qTests = querynew("id,location,locationlabel,componentpath,componentname,componenthint,testmethod,testname,testhint,testmode") />
 		<cfset var oTest = "" />
 		<cfset var stMD = structnew() />
+		<cfset var thisMD = structnew() />
 		<cfset var componentname = "" />
 		<cfset var componenthint = "" />
 		<cfset var componentmode = "" />
@@ -165,6 +166,8 @@
 		<cfset var testhint = "" />
 		<cfset var testmode = "" />
 		<cfset var testssofar = "" />
+		<cfset var testfound = false />
+		<cfset var i = 0 />
 		
 		<cfloop list="core,#application.plugins#,project" index="location">
 			<cfset qTestCases = getTestCases(location) />
@@ -195,20 +198,28 @@
 					<cfloop list="#arraytolist(oTest.getRunnableMethods())#" index="thistest">
 						<cfset testtitle = thistest />
 						<cfset testhint = "" />
-						<cfloop from="1" to="#arraylen(stMD.functions)#" index="i">
-							<cfif stMD.functions[i].name eq thistest>
-								<cfif structkeyexists(stMD.functions[i],"displayname")>
-									<cfset testtitle = stMD.functions[i].displayname />
+						<cfset testfound = false />
+						<cfset thisMD = stMD />
+						<cfloop condition="not testfound and not findnocase('component',thisMD.name)">
+							<cfset i = 1 />
+							<cfloop condition="not testfound and i lte arraylen(thisMD.functions)">
+								<cfif thisMD.functions[i].name eq thistest>
+									<cfif structkeyexists(thisMD.functions[i],"displayname")>
+										<cfset testtitle = thisMD.functions[i].displayname />
+									</cfif>
+									<cfif structkeyexists(thisMD.functions[i],"hint")>
+										<cfset testhint = thisMD.functions[i].hint />
+									</cfif>
+									<cfif structkeyexists(thisMD.functions[i],"mode")>
+										<cfset testmode = thisMD.functions[i].mode />
+									<cfelse>
+										<cfset testmode = componentmode />
+									</cfif>
+									<cfset testfound = true />
 								</cfif>
-								<cfif structkeyexists(stMD.functions[i],"hint")>
-									<cfset testhint = stMD.functions[i].hint />
-								</cfif>
-								<cfif structkeyexists(stMD.functions[i],"mode")>
-									<cfset testmode = stMD.functions[i].mode />
-								<cfelse>
-									<cfset testmode = componentmode />
-								</cfif>
-							</cfif>
+								<cfset i = i + 1 />
+							</cfloop>
+							<cfset thisMD = thisMD.extends />
 						</cfloop>
 						
 						<cfset queryaddrow(qTests) />
@@ -233,9 +244,9 @@
 		
 		<cfif arguments.mode neq "any">
 			<cfquery dbtype="query" name="qTests">
-				select	*
-				from	qTests
-				where	testmode='any' or testmode=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.mode#" />
+				select		*
+				from		qTests
+				where		testmode='any' or testmode=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.mode#" />
 			</cfquery>
 		</cfif>
 		
@@ -321,6 +332,7 @@
 		<cfset var componentpath = "" />
 		<cfset var oTest = "" />
 		<cfset var stMD = "" />
+		<cfset var thisMD = "" />
 		<cfset var componentname = "" />
 		<cfset var componenthint = "" />
 		<cfset var thistest = "" />
@@ -328,6 +340,7 @@
 		<cfset var testdependson = "" />
 		<cfset var testhint = "" />
 		<cfset var stTests = structnew() />
+		<cfset var testfound = false />>
 		
 		<cfloop list="#arguments.testcase.tests#" index="testpath">
 			<cfset componentpath = listdeleteat(testpath,listlen(testpath,"."),".") />
@@ -354,18 +367,25 @@
 					<cfset testtitle = thistest />
 					<cfset testhint = "" />
 					<cfset testdependson = "" />
-					<cfloop from="1" to="#arraylen(stMD.functions)#" index="i">
-						<cfif stMD.functions[i].name eq thistest>
-							<cfif structkeyexists(stMD.functions[i],"displayname")>
-								<cfset testtitle = stMD.functions[i].displayname />
+					<cfset testfound = false />
+					<cfset thisMD = stMD />
+					<cfloop condition="not testfound and not findnocase('component',thisMD.name)">
+						<cfset i = 1 />
+						<cfloop condition="not testfound and i lte arraylen(thisMD.functions)">
+							<cfif thisMD.functions[i].name eq thistest>
+								<cfif structkeyexists(thisMD.functions[i],"displayname")>
+									<cfset testtitle = thisMD.functions[i].displayname />
+								</cfif>
+								<cfif structkeyexists(thisMD.functions[i],"hint")>
+									<cfset testhint = thisMD.functions[i].hint />
+								</cfif>
+								<cfif structkeyexists(thisMD.functions[i],"dependson")>
+									<cfset testdependson = thisMD.functions[i].dependson />
+								</cfif>
 							</cfif>
-							<cfif structkeyexists(stMD.functions[i],"hint")>
-								<cfset testhint = stMD.functions[i].hint />
-							</cfif>
-							<cfif structkeyexists(stMD.functions[i],"dependson")>
-								<cfset testdependson = stMD.functions[i].dependson />
-							</cfif>
-						</cfif>
+							<cfset i = i + 1 />
+						</cfloop>
+						<cfset thisMD = thisMD.extends />
 					</cfloop>
 					
 					<cfset queryaddrow(qTests) />

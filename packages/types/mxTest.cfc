@@ -9,20 +9,28 @@
 	<cfproperty ftSeq="1" ftFieldset="Test" ftWizardstep="Test" ftLabel="Title"
 				name="title" type="string" hint="The name of the test set. A set called 'Automatic' should be created automatically"
 				ftValidation="required" />
-	<cfproperty ftSeq="2" ftFieldset="URLs" ftWizardstep="Test" ftLabel="URLs"
+	<cfproperty ftSeq="2" ftFieldset="Test" ftWizardstep="Test" ftLabel="URLs"
 				name="urls" type="longchar" ftHint="One URL on each line, listing the base URLs that this test suite can be run against. The first URL will be used for automated tests."
 				ftDefault="'http://##cgi.http_host##/'" ftDefaultType="evaluate"
 				ftValidation="required" />
-	<cfproperty ftSeq="3" ftFieldset="Test" ftWizardstep="Test" ftLabel="Tests"
+	
+	<cfproperty ftSeq="11" ftFieldSet="Unit Tests" ftWizardStep="Test" ftLabel="Unit Tests"
+				name="bUnitTests" type="boolean" default="1" ftDefault="1" hint="Set to true to run unit tests" />
+	<cfproperty ftSeq="12" ftFieldset="Unit Tests" ftWizardstep="Test" ftLabel="Tests"
 				name="tests" type="longchar" hint="The tests that are part of the set" />
-	<cfproperty ftSeq="4" ftFieldset="Remote" ftWizardstep="Test" ftLabel="Test Suite Endpoint"
+	<cfproperty ftSeq="13" ftFieldset="Unit Tests" ftWizardstep="Test" ftLabel="Test Suite Endpoint"
 				name="remoteEndpoint" type="string" hint="URL for running remote tests on the target server"
 				ftHint="There is a link in the top left of the 'Run Tests' page. Copy the query string (the part of the URL after '?') into this field." />
 	
-	<cfproperty ftSeq="11" ftFieldset="Automation" ftWizardstep="Test" ftLabel="Run as part of nightly tests"
+	<cfproperty ftSeq="21" ftFeildSet="Broken Link Checking" ftWizardStep="Test" ftLabel="Link Checking"
+				name="bLinkTests" type="boolean" default="0" ftDefault="0" hint="Set to true to run link checker" />
+	<cfproperty ftSeq="22" ftFieldSet="Broken Link Checking" ftWizardStep="Test" ftLabel="Depth"
+				name="linkDepth" type="numeric" ftType="integer" ftDefault="3" ftHint="The number of levels to link check. MUST be 1 or more.">
+	
+	<cfproperty ftSeq="31" ftFieldset="Automation" ftWizardstep="Test" ftLabel="Run as part of nightly tests"
 				name="bAutomated" type="boolean"
 				ftHint="If you have automated nightly tests set up, use this flag to indicate whether this test case should be included." />
-	<cfproperty ftSeq="12" ftFieldset="Automation" ftWizardstep="Test" ftLabel="Email notification"
+	<cfproperty ftSeq="32" ftFieldset="Automation" ftWizardstep="Test" ftLabel="Email notification"
 				name="notification" type="longchar" hint="The email addresses to send the unit test results"
 				ftType="string" ftHint="This is used during automated test runs, not when using the 'Run Tests' option to the right." />
 	

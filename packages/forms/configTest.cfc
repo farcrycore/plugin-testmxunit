@@ -3,4 +3,6 @@
 
 	<cfproperty ftSeq="11" ftFieldSet="Selenium" name="browser" type="string" ftLabel="Browser" ftDefault="*chrome" ftHint="Other options are " />
 	
+	<cfproperty ftSeq="21" ftFieldSet="W3C Link Checker" name="system" type="string" ftLabel="System" ftType="list" ftList="Windows,Linux" ftDefault="Windows" />
+	
 </cfcomponent>

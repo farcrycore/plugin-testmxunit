@@ -1,4 +1,4 @@
-<cfsetting enablecfoutputonly="true" requesttimeout="10000" />
+<cfsetting enablecfoutputonly="true" requesttimeout="1000000" />
 <!--- @@displayname: Run tests --->
 
 <cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />

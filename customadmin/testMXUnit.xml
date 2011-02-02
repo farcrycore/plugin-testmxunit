@@ -4,7 +4,8 @@
 		<subsection id="testingsubsection" sequence="50" label="Testing">
 			<menu id="testMXUnit" sequence="10" label="Unit Testing">
 				<menuitem id="testMXUnitConfigureTests" sequence="10" label="Configure Tests" link="/admin/customadmin.cfm?module=configuretests.cfm&amp;plugin=testMXUnit" />
-				<menuitem id="testMXUnitRunTests" sequence="20" label="Run Tests" link="/admin/customadmin.cfm?module=runtests.cfm&amp;plugin=testMXUnit" />
+				<menuitem id="testMXUnitRunTests" sequence="20" label="Run Unit Tests" link="/admin/customadmin.cfm?module=runtests.cfm&amp;plugin=testMXUnit" />
+				<menuitem id="testLinkChecker" sequence="30" label="Run Link Checker" link="/admin/customadmin.cfm?module=linkchecker.cfm&amp;plugin=testMXUnit" />
 			</menu>
 		</subsection>
 	</section>

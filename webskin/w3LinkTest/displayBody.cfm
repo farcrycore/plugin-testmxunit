@@ -1,5 +1,7 @@
 <cfsetting enablecfoutputonly="true" />
 
+<cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
+
 <cfoutput><h1><a href="#stObj.url#">#stObj.url#</a> - #timeformat(stObj.datetimecreated,'hh:mmtt')#, #dateformat(stObj.datetimecreated,"d mmmm")#</h1></cfoutput>
 <cfif isTestFinished(stObject=stObj)>
 	<cfif stObj.state neq "Complete">

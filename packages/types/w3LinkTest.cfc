@@ -90,7 +90,7 @@
 		<cfswitch expression="#application.config.testing.system#">
 			<cfcase value="Windows">
 				<cfexecute name="c:\windows\system32\cmd.exe"
-				    arguments='/c "#expandpath('/farcry/plugins/testMXUnit/packages/w3clinkchecker/kickoff.bat')#" "#expandpath('/farcry/plugins/testMXUnit/packages/w3clinkchecker/bin/checklink')#" #arguments.stObject.url# #int(arguments.stObject.linkDepth)# "#application.path.defaultfilepath##arguments.stObject.resultFile#" "#replace(arguments.stObject.resultFile,".txt",".done")#' 
+				    arguments='/c "#expandpath('/farcry/plugins/testMXUnit/packages/w3clinkchecker/kickoff.bat')#" "#expandpath('/farcry/plugins/testMXUnit/packages/w3clinkchecker/bin/checklink')#" #arguments.stObject.url# #int(arguments.stObject.linkDepth)# "#application.path.defaultfilepath##arguments.stObject.resultFile#" "#application.path.defaultfilepath##replace(arguments.stObject.resultFile,".txt",".done")#' 
 				    timeout="0">
 				</cfexecute>
 			</cfcase>
@@ -120,11 +120,7 @@
 			<cfreturn true />
 		<cfelseif fileexists("#application.path.defaultfilepath##rereplace(arguments.stObject.resultFile,'.txt$','.done')#")>
 			<cfset stFile = getFileInfo("#application.path.defaultfilepath##arguments.stObject.resultFile#") />
-			<cfif stFile.size gt 100 and stFile.lastmodified lt dateadd("n",-1,now())>
-				<cfreturn true />
-			<cfelse>
-				<cfreturn false />
-			</cfif>
+			<cfreturn true />
 		<cfelse>
 			<cfreturn false />
 		</cfif>

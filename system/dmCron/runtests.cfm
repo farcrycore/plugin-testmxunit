@@ -11,7 +11,7 @@
 <cfset oTest = application.fapi.getContentType(typename="mxTest") />
 <cfloop list="#url.tests#" index="thistest">
 	<cfset stTest = oTest.getData(objectid=thistest) />
-	<cfif stTest.lastrundate lt dateadd("n",-5,now())>
+	<cfif stTest.lastrundate lt createdate(year(now()),month(now()),day(now()))>
 		<cfset stTest.lastrundate = now() />
 		<cfset oTest.setData(stProperties=stTest) />
 		<skin:view stObject="#stTest#" webskin="displayAutomatedTests" />

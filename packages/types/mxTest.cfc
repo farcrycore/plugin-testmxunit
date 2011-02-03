@@ -33,7 +33,11 @@
 	<cfproperty ftSeq="32" ftFieldset="Automation" ftWizardstep="Test" ftLabel="Email notification"
 				name="notification" type="longchar" hint="The email addresses to send the unit test results"
 				ftType="string" ftHint="This is used during automated test runs, not when using the 'Run Tests' option to the right." />
+	<cfproperty ftSeq="13" ftFieldset="Automation" ftWizardstep="Test" ftLabel="Report passes"
+				name="bReportPasses" type="boolean" default="0" ftDefault="0" 
+				ftType="boolean" ftHint="Set to true to report on passed tests" />
 	
+	<cfproperty name="lastrundate" type="datetime" hint="The last time this test was executed. Used to ensure that it won't accidentally get hit twice." />
 	
 	<cffunction name="ftEditTests" returntype="string" output="false" access="public" hint="UI for selecting the tests in this set">
 		<cfset var location = "" />

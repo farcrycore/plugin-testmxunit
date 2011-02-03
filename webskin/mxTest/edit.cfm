@@ -38,7 +38,7 @@
 	<cfelse>
 		<ft:object typename="mxTest" stObject="#stObj#" lfields="tests" Legend="Test Case" />
 	</cfif>
-	<ft:object typename="mxTest" stObject="#stObj#" lfields="bAutomated,notification" Legend="Automation" />
+	<ft:object typename="mxTest" stObject="#stObj#" lfields="bAutomated,notification,bReportPasses" Legend="Automation" />
 	<ft:buttonPanel>
 		<ft:button value="Save" />
 		<ft:button value="Cancel" />

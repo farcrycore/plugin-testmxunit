@@ -149,39 +149,40 @@
 			where	result<>'Passed'
 		</cfquery>
 		
-		
-		<cfsavecontent variable="stLocal.unittestresulthtml">
-			<cfoutput>
-				<h1>#stObj.title#: Unit Test Results for #dateformat(now(),"full")#</h1>
-				<p>#stLocal.qTestPassed.recordcount# test/s passed and #stLocal.qTests.recordcount# test/s failed. Details about the failed tests are included below.</p>
-			</cfoutput>
-			<cfoutput query="stLocal.qTests" group="remote">
-				<cfif stLocal.qTests.remote>
-					<h2>Remote Tests</h2>
-					<p>These tests were executed on the web server.</p>
-				<cfelse>
-					<h2>External Tests</h2>
-					<p>These tests were executed externally by making HTTP requests to the web server.</p>
-				</cfif>
-				<cfoutput group="componentname">
-					<h3>#stLocal.qTests.componentname#</h3>
-					<cfif len(stLocal.qTests.componenthint)><p>#stLocal.qTests.componenthint#</p></cfif>
-					<cfoutput>
-						<h4>#stLocal.qTests.testname# (#stLocal.qTests.result#)</h4>
-						<cfif len(stLocal.qTests.testhint)><p>#stLocal.qTests.testhint#</p></cfif>
-						<cfif find("<",stLocal.stResults[hash("#stLocal.qTests.remote#-#stLocal.qTests.componentname#-#stLocal.qTests.testmethod#")].message)>
-							#stLocal.stResults[hash("#stLocal.qTests.remote#-#stLocal.qTests.componentname#-#stLocal.qTests.testmethod#")].message#
-						<cfelse>
-							<p>#stLocal.stResults[hash("#stLocal.qTests.remote#-#stLocal.qTests.componentname#-#stLocal.qTests.testmethod#")].message#</p>
-						</cfif>
+		<cfif not stObj.bReportPasses and stLocal.qTests.recordcount eq 0>
+			<cfset stLocal.unittestresulthtml = "" />
+		<cfelse>
+			<cfsavecontent variable="stLocal.unittestresulthtml">
+				<cfoutput>
+					<h1>#stObj.title#: Unit Test Results for #dateformat(now(),"full")#</h1>
+					<p>#stLocal.qTestPassed.recordcount# test/s passed and #stLocal.qTests.recordcount# test/s failed. Details about the failed tests are included below.</p>
+				</cfoutput>
+				<cfoutput query="stLocal.qTests" group="remote">
+					<cfif stLocal.qTests.remote>
+						<h2>Remote Tests</h2>
+						<p>These tests were executed on the web server.</p>
+					<cfelse>
+						<h2>External Tests</h2>
+						<p>These tests were executed externally by making HTTP requests to the web server.</p>
+					</cfif>
+					<cfoutput group="componentname">
+						<h3>#stLocal.qTests.componentname#</h3>
+						<cfif len(stLocal.qTests.componenthint)><p>#stLocal.qTests.componenthint#</p></cfif>
+						<cfoutput>
+							<h4>#stLocal.qTests.testname# (#stLocal.qTests.result#)</h4>
+							<cfif len(stLocal.qTests.testhint)><p>#stLocal.qTests.testhint#</p></cfif>
+							<cfif find("<",stLocal.stResults[hash("#stLocal.qTests.remote#-#stLocal.qTests.componentname#-#stLocal.qTests.testmethod#")].message)>
+								#stLocal.stResults[hash("#stLocal.qTests.remote#-#stLocal.qTests.componentname#-#stLocal.qTests.testmethod#")].message#
+							<cfelse>
+								<p>#stLocal.stResults[hash("#stLocal.qTests.remote#-#stLocal.qTests.componentname#-#stLocal.qTests.testmethod#")].message#</p>
+							</cfif>
+						</cfoutput>
 					</cfoutput>
 				</cfoutput>
-			</cfoutput>
-		</cfsavecontent>
+			</cfsavecontent>
+			<cfoutput>#stLocal.unittestresulthtml#</cfoutput>
+		</cfif>
 		
-		<cfoutput>
-			#stLocal.unittestresulthtml#
-		</cfoutput>
 	<cfelse>
 		<cfset stLocal.qTests = querynew("empty") />
 		<cfset stLocal.unittestresulthtml = "" />
@@ -196,7 +197,12 @@
 		<cfif stLocal.stLinkTest.state neq "Complete">
 			<cfset stLocal.stLinkTest = stLocal.oLinkTest.updateTestFromOutput(stObject=stLocal.stLinkTest) />
 		</cfif>
-		<cfsavecontent variable="stLocal.linktestresulthtml"><skin:view typename="w3LinkTest" objectid="#stLocal.stLinkTest.objectid#" webskin="displayBody" /></cfsavecontent>
+		<cfif not stObj.bReportPasses and stLocal.stLinkTest.numberRedirecting eq 0 and stLocal.stLinkTest.numberBroken eq 0>
+			<cfset stLocal.linktestresulthtml = "" />
+		<cfelse>
+			<cfsavecontent variable="stLocal.linktestresulthtml"><skin:view typename="w3LinkTest" objectid="#stLocal.stLinkTest.objectid#" webskin="displayBody" /></cfsavecontent>
+			<cfoutput>#stLocal.linktestresulthtml#</cfoutput>
+		</cfif> 
 	<cfelse>
 		<cfset stLocal.linktestresulthtml = "" />
 	</cfif>

@@ -119,7 +119,6 @@
 		<cfif arguments.stObject.state eq "Complete">
 			<cfreturn true />
 		<cfelseif fileexists("#application.path.defaultfilepath##rereplace(arguments.stObject.resultFile,'.txt$','.done')#")>
-			<cfset stFile = getFileInfo("#application.path.defaultfilepath##arguments.stObject.resultFile#") />
 			<cfreturn true />
 		<cfelse>
 			<cfreturn false />
@@ -134,9 +133,13 @@
 		
 		<cfset var stPage = structnew() />
 		<cfset var stLink = structnew() />
+		<cfset var st = structnew() />
 		
-		<cfset stResult.ok = arraynew(1) />
-		<cfset stResult.notok = arraynew(1)>
+		<cfset stResult.pages = arraynew(1) />
+		<cfset stResult.totals = structnew() />
+		<cfset stResult.totals.all = 0 />
+		<cfset stResult.totals.redirecting = 0 />
+		<cfset stResult.totals.broken = 0 />
 		
 		<cfif structkeyexists(arguments,"objectid")>
 			<cfset arguments.stObject = getData(objectid=arguments.objectid) />
@@ -146,42 +149,48 @@
 			<cfif refindnocase("^Processing	http",thisline)>
 				<cfif structkeyexists(stLink,"url") and not findnocase("www.w3.org",stLink.url) and not refindnocase("(N/A)",stLink.code)>
 					<cfset arrayappend(stPage.aLinks,stLink) />
+					<cfif not structkeyexists(stLink,"redirect")>
+						<cfset stResult.totals.broken = stResult.totals.broken + 1 />
+					</cfif>
 				</cfif>
 				<cfif structkeyexists(stPage,"url")>
-					<cfif arraylen(stPage.aLinks)>
-						<cfset arrayappend(stResult.notok,stPage) />
-					<cfelse>
-						<cfset arrayappend(stResult.ok,stPage.url) />
-					</cfif>
+					<cfset arrayappend(stResult.pages,stPage) />
 				</cfif>
 				<cfset stPage = structnew() />
 				<cfset stPage.aLinks = arraynew(1) />
 				<cfset stPage.url = mid(thisline,len("Processing	")+1,len(thisline)) />
+			<cfelseif refind("^Found \d+ anchor",thisline)>
+				<cfset st = refind("^Found (\d+) anchor",thisline,1,true) />
+				<cfset stPage.totalanchors = mid(thisline,st.pos[2],st.len[2]) />
+				<cfset stResult.totals.all = stResult.totals.all + stPage.totalanchors />
 			<cfelseif refindnocase("^(https?://|mailto:)",thisline)>
 				<cfif structkeyexists(stLink,"url") and not findnocase("www.w3.org",stLink.url) and not refindnocase("(N/A)",stLink.code)>
 					<cfset arrayappend(stPage.aLinks,stLink) />
+					<cfif not structkeyexists(stLink,"redirect")>
+						<cfset stResult.totals.broken = stResult.totals.broken + 1 />
+					</cfif>
 				</cfif>
 				<cfset stLink = structnew() />
 				<cfset stLink.url = thisline />
 			<cfelseif left(thisline,3) eq "-> ">
 				<cfset stLink.redirect = mid(thisline,4,len(thisline)) />
+				<cfset stResult.totals.redirecting = stResult.totals.redirecting + 1 />
 			<cfelseif findnocase("Code:",thisline)>
 				<cfset stLink.code = mid(thisline,9,len(thisline)) />
 			<cfelseif findnocase("To Do:",thisline)>
 				<cfset stLink.todo = mid(thisline,9,len(thisline)) />
-			<cfelseif left(thisline,1) eq "	" and structkeyexists(stLink,"todo")>
+			<cfelseif left(thisline,1) eq "	" and refind("\s+",thisline) and structkeyexists(stLink,"todo")>
 				<cfset stLink.todo = stLink.todo & " " & trim(thisline) />
 			</cfif>
 		</cfloop>
 		<cfif structkeyexists(stLink,"url") and not findnocase("www.w3.org",stLink.url) and not refindnocase("(N/A)",stLink.code)>
 			<cfset arrayappend(stPage.aLinks,stLink) />
+			<cfif not structkeyexists(stLink,"redirect")>
+				<cfset stResult.totals.broken = stResult.totals.broken + 1 />
+			</cfif>
 		</cfif>
 		<cfif structkeyexists(stPage,"url")>
-			<cfif arraylen(stPage.aLinks)>
-				<cfset arrayappend(stResult.notok,stPage) />
-			<cfelse>
-				<cfset arrayappend(stResult.ok,stPage.url) />
-			</cfif>
+			<cfset arrayappend(stResult.pages,stPage) />
 		</cfif>
 		
 		<cfreturn stResult />
@@ -202,26 +211,60 @@
 		<cfset stReport = parseTestReport(stObject=arguments.stObject) />
 		
 		<!--- Initialise counts --->
-		<cfset arguments.stObject.numberOK = arraylen(stReport.ok) />
-		<cfset arguments.stObject.numberRedirecting = 0 />
-		<cfset arguments.stObject.numberBroken = 0 />
-		
-		<!--- Count redirecting / broken --->
-		<cfloop from="1" to="#arraylen(stReport.notok)#" index="i">
-			<cfloop from="1" to="#arraylen(stReport.notok[i].aLinks)#" index="j">
-				<cfif left(stReport.notok[i].aLinks[j].code,1) eq "3">
-					<cfset arguments.stObject.numberRedirecting = arguments.stObject.numberRedirecting + 1 />
-				<cfelse>
-					<cfset arguments.stObject.numberBroken = arguments.stObject.numberBroken + 1 />
-				</cfif>
-			</cfloop>
-		</cfloop>
+		<cfset arguments.stObject.numberRedirecting = stReport.totals.redirecting />
+		<cfset arguments.stObject.numberBroken = stReport.totals.broken />
+		<cfset arguments.stObject.numberOK = stReport.totals.all - stReport.totals.redirecting - stReport.totals.broken />
 		
 		<!--- Update record --->
 		<cfset arguments.stObject.state = "Complete" />
 		<cfset setData(stProperties=arguments.stObject) />
 		
 		<cfreturn arguments.stObject />
+	</cffunction>
+	
+	
+	<cffunction name="minArg" access="public" returntype="numeric" output="false">
+		<cfset var i = 0 />
+		<cfset var mina = "" />
+		
+		<cfloop from="1" to="#arraylen(arguments)#" index="i">
+			<cfif not isnumeric(mina) or mina gt arguments[i]>
+				<cfset mina = arguments[i] />
+			</cfif>
+		</cfloop>
+		
+		<cfreturn mina />
+	</cffunction>
+	
+	<cffunction name="maxArg" access="public" returntype="numeric" output="false">
+		<cfset var i = 0 />
+		<cfset var maxa = "" />
+		
+		<cfloop from="1" to="#arraylen(arguments)#" index="i">
+			<cfif not isnumeric(maxa) or maxa lt arguments[i]>
+				<cfset maxa = arguments[i] />
+			</cfif>
+		</cfloop>
+		
+		<cfreturn maxa />
+	</cffunction>
+	
+	<cffunction name="getTestChart" access="public" returntype="string" description="Returns the chart image path (after downloading it from Google if necessary)" output="false">
+		<cfargument name="objectid" type="uuid" required="false" />
+		<cfargument name="stObject" type="struct" required="false" />
+		
+		<cfset var filename = "" />
+		<cfset var minr = 0 />
+		<cfset var maxr = 0 />
+		
+		<cfif not structkeyexists(arguments,"stObject")>
+			<cfset arguments.stObject = getData(arguments.objectid) />
+		</cfif>
+		
+		<cfset minr = minArg(arguments.stObject.numberOK,arguments.stObject.numberRedirecting,arguments.stObject.numberBroken) />
+		<cfset maxr = maxArg(arguments.stObject.numberOK,arguments.stObject.numberRedirecting,arguments.stObject.numberBroken) />
+		
+		<cfreturn "http://chart.apis.google.com/chart?chs=360x285&cht=p&chco=00BF0D|FFA500|CC2504&chd=t:#arguments.stObject.numberOK#,#arguments.stObject.numberRedirecting#,#arguments.stObject.numberBroken#&chds=#minr#,#maxr#&chdl=OK|Redirecting|Broken&chdlp=b&chma=|5&chtt=Link+Tests&chts=3A3A3A,17.5" />
 	</cffunction>
 	
 </cfcomponent>

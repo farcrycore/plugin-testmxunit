@@ -483,4 +483,87 @@
 		</cfif>
 	</cffunction>
 	
+	<cffunction name="getTestResults" returntype="struct" output="true" access="public" hint="Runs the automated tests and stored the results in mxTestResult and w3LinkTest">
+		<cfargument name="objectid" type="uuid" required="false" />
+		<cfargument name="stObject" type="struct" required="false" />
+		<cfargument name="date" type="date" required="false" />
+		
+		<cfset var html = structnew () />
+		<cfset var oLinkTest = application.fapi.getContentType(typename="w3LinkTest") />
+		<cfset var stLinkTest = structnew() />
+		<cfset var stResult = structnew() />
+		<cfset var stTestResult = structnew() />
+		<cfset var thread = createObject("java", "java.lang.Thread") />
+		<cfset var q = "" />
+		
+		<cfif not structkeyexists(arguments,"stObject")>
+			<cfset arguments.stObject = getData(objectid=arguments.objectid) />
+		</cfif>
+		
+		<cfif structkeyexists(arguments,"date")>
+			
+			<!--- This is for returning the results that were run on a particular day --->
+			<cfquery datasource="#application.dsn#" name="q">
+				select		objectid
+				from		#application.dbowner#mxTestResult
+				where		datetimecreated > <cfqueryparam cfsqltype="cf_sql_timestamp" value="#arguments.date#" />
+							and datetimecreated < <cfqueryparam cfsqltype="cf_sql_timestamp" value="#dateadd('d',1,arguments.date)#" />
+				order by	datetimecreated desc
+			</cfquery>
+			<cfif q.recordcount>
+				<cfset stResult.mxTestResultID = q.objectid />
+			</cfif>
+			
+			<cfquery datasource="#application.dsn#" name="q">
+				select		objectid
+				from		#application.dbowner#w3LinkTest
+				where		datetimecreated > <cfqueryparam cfsqltype="cf_sql_timestamp" value="#arguments.date#" />
+							and datetimecreated < <cfqueryparam cfsqltype="cf_sql_timestamp" value="#dateadd('d',1,arguments.date)#" />
+				order by	datetimecreated desc
+			</cfquery>
+			<cfif q.recordcount>
+				<cfset stResult.w3LinkTestID = q.objectid />
+			</cfif>
+			
+			<cfreturn stResult />
+		
+		<cfelse>
+		
+			<cfset html = structnew() />
+			<cfset html.unitchart = "" />
+			<cfset html.unitdetails = "" />
+			<cfset html.linkchart = "" />
+			<cfset html.linkdetails = "" />
+			
+			<!--- Kick off link checker if that is part of this test --->
+			<cfif arguments.stObject.bLinkTests>
+				<cfset stLinkTest = oLinkTest.getData(objectid=createuuid()) />
+				<cfset stLinkTest.mxTestID = arguments.stObject.objectid />
+				<cfset stLinkTest.url = listfirst(arguments.stObject.urls,"#chr(10)##chr(13)#") />
+				<cfset stLinkTest.linkDepth = arguments.stObject.linkDepth />
+				<cfset stLinkTest.resultFile = application.stCOAPI.w3LinkTest.stProps.resultFile.metadata.ftDestination & "/" & stLinkTest.objectid & ".txt" />
+				<cfset oLinkTest.setData(stProperties=stLinkTest) />
+				<cfset oLinkTest.startTest(objectid=stLinkTest.objectid) />
+			</cfif>
+			
+			<!--- Run the unit tests (Selenium tests among them) --->
+			<cfif arguments.stObject.bUnitTests>
+				<cfset stTestResult = application.fapi.getContentType(typename="mxTestResult").getTestResult(stTest=arguments.stObject) />
+				<cfset stResult.mxTestResultID = stTestResult.objectid />
+			</cfif>
+			
+			<!--- If this test include link checking, wait for the process to finish --->
+			<cfif arguments.stObject.bLinkTests>
+				<cfloop condition="not oLinkTest.isTestFinished(stObject=stLinkTest)">
+					<cfset thread.sleep(5000) />
+				</cfloop>
+				<cfset stLinkTest = oLinkTest.updateTestFromOutput(stObject=stLinkTest) />
+				<cfset stResult.w3LinkTestID = stLinkTest.objectid />
+			</cfif>
+		
+		</cfif>
+		
+		<cfreturn stResult />
+	</cffunction>
+	
 </cfcomponent>

@@ -13,7 +13,7 @@
 	<script type="text/javascript">
 		function showDetails(d){
 			$j('.result-detail').hide();
-			$j('##details-'+d.replace(/[^\w]+/g,'-')).show();
+			$j('div.details-'+d.replace(/[^\w]+/g,'-')+',span.details-'+d.replace(/[^\w]+/g,'-')).show();
 		};
 	</script>
 </cfoutput></skin:htmlHead>
@@ -29,14 +29,14 @@
 
 <cfloop query="stLocal.qResults">
 	<cfoutput>
-		<div id="details-#dateformat(stLocal.qResults.datetimecreated, 'd-mmm')#" class="result-detail" style="display:none;">
+		<div class="details-#dateformat(stLocal.qResults.datetimecreated, 'd-mmm')#" class="result-detail" style="display:none;">
 			<table class="objectAdmin" width="100%">
 				<tr><th>Test</th><th>Result</th><th>Message</th></tr>
 	</cfoutput>
 	
-	<cfwddx action="wddx2cfml" input="#stLocal.qResults.details#" output="stLocal.aCurrent" />
-	<cfloop from="1" to="#arraylen(stLocal.aCurrent)#" index="stLocal.i">
-		<cfoutput><tr><td>#stLocal.aCurrent[stLocal.i].name#</td><td>#stLocal.aCurrent[stLocal.i].status#</td><td>#stLocal.aCurrent[stLocal.i].message#</td></tr></cfoutput>
+	<cfwddx action="wddx2cfml" input="#stLocal.qResults.details#" output="stLocal.details" />
+	<cfloop from="1" to="#arraylen(stLocal.details.aResults)#" index="stLocal.i">
+		<cfoutput><tr><td>#stLocal.details.aResults[stLocal.i].name#</td><td>#stLocal.details.aResults[stLocal.i].status#</td><td>#stLocal.details.aResults[stLocal.i].message#</td></tr></cfoutput>
 	</cfloop>
 	
 	<cfoutput>

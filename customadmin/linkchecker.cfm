@@ -16,7 +16,7 @@
 			<td style="border:0 none;padding:10px;" width="70%" valign="top">
 </cfoutput>
 <cfif isvalid("uuid",url.viewreport)>
-	<skin:view typename="w3LinkTest" objectid="#url.viewreport#" webskin="displayBody" />
+	<skin:view typename="w3LinkTest" objectid="#url.viewreport#" webskin="displayAutoRefreshBody" />
 <cfelse>
 	<ft:processForm action="Run Check">
 		<ft:processFormObjects typename="w3LinkTest" />

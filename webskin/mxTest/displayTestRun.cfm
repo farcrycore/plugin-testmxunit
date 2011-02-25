@@ -1,4 +1,4 @@
-<cfsetting enablecfoutputonly="true" requesttimeout="200000">
+<cfsetting enablecfoutputonly="true" requesttimeout="1000000">
 <!--- @@displayname: Automated test run --->
 <!--- @@fuAlias: testrun --->
 <!--- @@viewstack: body --->
@@ -39,17 +39,18 @@
 	<cfif stObj.bReportPasses or len(stLocal.html.unitdetails) or len(stLocal.html.unitdetails) >
 		<cfoutput>
 			<h1 style="font-family:verdana,arial;">#stObj.title#: Test Results for #dateformat(now(),"full")#</h1>
-			<h2 style="font-family:verdana,arial;">Overview</h2>
-			<table style="font-family:verdana,arial;">
+			<table style="font-family:verdana,arial;width:720px;">
 				<tr>
 					<cfif stObj.bUnitTests><td>#stLocal.html.unitchart#</td></cfif>
 					<cfif stObj.bLinkTests><td>#stLocal.html.linkchart#</td></cfif>
 				</tr>
+				<tr>
+					<td colspan="2">
+						#stLocal.html.unitdetails#
+						#stLocal.html.linkdetails#
+					</td>
+				</tr>
 			</table>
-			
-			#stLocal.html.unitdetails#
-			
-			#stLocal.html.linkdetails#
 		</cfoutput>
 	</cfif>
 	

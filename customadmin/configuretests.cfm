@@ -18,6 +18,36 @@
 
 <cfif oMXUnit.isDeployed()>
 	<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app">
+		<ft:processform action="Run Test">
+			<cfsetting requesttimeout="100000" />
+			<cfset oTest = application.fapi.getContentType(typename="mxTest") />
+			<cfset stTest = oTest.getData(objectid=form.selectedObjectID) />
+			<cfset stTest.lastrundate = now() />
+			<cfset oTest.setData(stProperties=stTest) />
+			<skin:view stObject="#stTest#" webskin="displayTestRun" r_html="reportHTML" alternateHTML="" />
+			<cfif len(reportHTML)>
+				<cfoutput>
+					<h2>#stTest.title# Notifications</h2>
+					<ul>
+				</cfoutput>
+				
+				<cfloop list="#stTest.notification#" index="thisnot">
+					<cftry>
+						<cfmail to="#thisnot#" from="#application.config.general.adminemail#" type="html" subject="#stTest.title#: Test Results for #dateformat(stTest.lastrundate,'full')#">#reportHTML#</cfmail>
+						<cfoutput><li>Notified #thisnot#</li></cfoutput>
+						
+						<cfcatch>
+							<cfoutput><li>Failed to notify #thisnot# (#cfcatch.message#)</li></cfoutput>
+						</cfcatch>
+					</cftry>
+				</cfloop>
+				
+				<cfoutput></ul></cfoutput>
+			<cfelse>
+				<cfoutput><h2>#stTest.title# report was empty</h2></cfoutput>
+			</cfif>
+		</ft:processform>
+		
 		<cfset stFilterMetaData = structnew() />
 		
 		<cfset stFilterMetaData.title.ftValidation = "" />
@@ -34,6 +64,7 @@
 			lFilterFields="title,urls"
 			stFilterMetaData="#stFilterMetaData#"
 			sqlorderby="title asc"
+			lCustomActions="Run Test"
 			plugin="textMXUnit"
 			module="customlists/configuretests.cfm" />
 

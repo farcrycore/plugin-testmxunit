@@ -200,6 +200,7 @@
 		<cfset var filename = "" />
 		<cfset var minr = 0 />
 		<cfset var maxr = 0 />
+		<cfset var p = "%7C" />
 		
 		<cfif not structkeyexists(arguments,"stObject")>
 			<cfset arguments.stObject = getData(arguments.objectid) />
@@ -208,7 +209,14 @@
 		<cfset minr = minArg(arguments.stObject.numberPassed,arguments.stObject.numberDependency,arguments.stObject.numberFailed,arguments.stObject.numberErrored) />
 		<cfset maxr = maxArg(arguments.stObject.numberPassed,arguments.stObject.numberDependency,arguments.stObject.numberFailed,arguments.stObject.numberErrored) />
 		
-		<cfreturn "http://chart.apis.google.com/chart?chs=360x285&cht=p&chco=00BF0D|FFA500|CC2504|0000A0&chd=t:#arguments.stObject.numberPassed#,#arguments.stObject.numberDependency#,#arguments.stObject.numberFailed#,#arguments.stObject.numberErrored#&chds=#minr#,#maxr#&chdl=Passed|Dependency+Failure|Failed|Error&chdlp=b&chma=|5&chtt=Unit+Tests&chts=3A3A3A,17.5" />
+		<cfif not fileexists("#application.path.imageroot#/images/charts/#arguments.stObject.objectid#.png")>
+			<cfif not directoryexists("#application.path.imageroot#/images/charts")>
+				<cfdirectory action="create" directory="#application.path.imageroot#/images/charts" />
+			</cfif>
+			<cfhttp url="http://chart.apis.google.com/chart?chs=360x285&cht=p&chco=00BF0D#p#FFA500#p#CC2504#p#0000A0&chd=t:#arguments.stObject.numberPassed#,#arguments.stObject.numberDependency#,#arguments.stObject.numberFailed#,#arguments.stObject.numberErrored#&chds=#minr#,#maxr#&chdl=Passed#p#Dependency+Failure#p#Failed#p#Error&chdlp=b&chma=#p#5&chtt=Unit+Tests&chts=3A3A3A,17.5" getAsBinary="yes" path="#application.path.imageroot#/images/charts/" file="#arguments.stObject.objectid#.png" />
+		</cfif>
+		
+		<cfreturn "#application.url.imageroot#/images/charts/#arguments.stObject.objectid#.png" />
 	</cffunction>
 	
 </cfcomponent>

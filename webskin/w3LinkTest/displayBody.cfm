@@ -4,7 +4,7 @@
 
 <cfparam name="arguments.stParam.bReportPasses" default="false" />
 
-<cfif arguments.stParam.bReportPasses or stObj.numberRedirecting gt 0 or stLocal.stLinkTest.numberBroken gt 0>
+<cfif arguments.stParam.bReportPasses or stObj.numberRedirecting gt 0 or stObj.numberBroken gt 0>
 	<cfif stObj.state neq "Complete">
 		<cfset stObj = updateTestFromOutput(stObject=stObj) />
 	</cfif>
@@ -12,7 +12,7 @@
 	
 	<cfoutput>
 		<h2 style="font-family:verdana,arial;">Link Testing Results</h2>
-		<p style="font-family:verdana,arial;"><span style="font-weight:bold;color:##00BF0D">#round(stObj.numberOK)#</span> link/s ok, <span style="font-weight:bold;color:##FFA500">#round(stObj.numberRedirecting)#</span> link/s redirecting, and <span style="font-weight:bold;color:##CC2504">#round(stObj.numberBroken)#</span> links/s broken. Details about the broken and redirecting links below.</p>
+		<p style="font-family:verdana,arial;"><span style="font-weight:bold;color:##00BF0D">#round(stObj.numberOK)#</span> link/s ok, <span style="font-weight:bold;color:##FFA500">#round(stObj.numberRedirecting)#</span> link/s redirecting, and <span style="font-weight:bold;color:##CC2504">#round(stObj.numberBroken)#</span> links/s broken.<cfif stObj.numberRedirecting gt 0 or stObj.numberBroken gt 0> Details about the broken and redirecting links below.</cfif></p>
 	</cfoutput>
 	
 	<cfoutput><h3 style="font-family:verdana,arial;">Problem Pages</h3></cfoutput>

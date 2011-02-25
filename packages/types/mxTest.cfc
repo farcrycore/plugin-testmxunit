@@ -508,6 +508,7 @@
 				from		#application.dbowner#mxTestResult
 				where		datetimecreated > <cfqueryparam cfsqltype="cf_sql_timestamp" value="#arguments.date#" />
 							and datetimecreated < <cfqueryparam cfsqltype="cf_sql_timestamp" value="#dateadd('d',1,arguments.date)#" />
+							and mxTestID=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stObject.objectid#" />
 				order by	datetimecreated desc
 			</cfquery>
 			<cfif q.recordcount>
@@ -519,6 +520,7 @@
 				from		#application.dbowner#w3LinkTest
 				where		datetimecreated > <cfqueryparam cfsqltype="cf_sql_timestamp" value="#arguments.date#" />
 							and datetimecreated < <cfqueryparam cfsqltype="cf_sql_timestamp" value="#dateadd('d',1,arguments.date)#" />
+							and mxTestID=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.stObject.objectid#" />
 				order by	datetimecreated desc
 			</cfquery>
 			<cfif q.recordcount>
@@ -564,6 +566,27 @@
 		</cfif>
 		
 		<cfreturn stResult />
+	</cffunction>
+	
+	<cffunction name="getTestRuns" output="false" access="public" returntype="query">
+		<cfargument name="objectid" type="uuid" required="false" />
+		<cfargument name="stObject" type="struct" required="false" />
+		
+		<cfset var qUnits = "" />
+		<cfset var qLinks = "" />
+		<cfset var qTestRuns = querynew("date,mxTestResultID,w3LinkTestID") />
+		<cfset var stTestRun = structnew() />
+		
+		<cfif not structkeyexists(arguments,"stObject")>
+			<cfset arguments.stObject = getData(arguments.objectid) />
+		</cfif>
+		
+		<cfset qUnits = application.fapi.getContentObjects(typename="mxTestResult",lProperties="objectid,datetimecreated") />
+		<cfset qLinks = application.fapi.getContentObjects(typename="w3LinkTest",lProperties="objectid,datetimecreated") />
+		
+		<cfloop query="qUnits">
+			
+		</cfloop>
 	</cffunction>
 	
 </cfcomponent>

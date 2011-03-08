@@ -33,6 +33,8 @@
 			</cfloop>
 			
 			<cfoutput></ul></cfoutput>
+		<cfelse>
+			<cfoutput><h2>#stTest.title# - No results</h2></cfoutput>
 		</cfif>
 	</cfif>
 </cfloop>

@@ -36,7 +36,7 @@
 		<cfsavecontent variable="stLocal.html.linkchart"><skin:view typename="w3LinkTest" objectid="#stLocal.results.w3LinkTestID#" webskin="displayChart" bReportPasses="#stObj.bReportPasses#" alternateHTML="" /></cfsavecontent>
 	</cfif>
 	
-	<cfif stObj.bReportPasses or len(stLocal.html.unitdetails) or len(stLocal.html.unitdetails) >
+	<cfif stObj.bReportPasses or len(stLocal.html.unitdetails) or len(stLocal.html.linkdetails) >
 		<cfoutput>
 			<h1 style="font-family:verdana,arial;">#stObj.title#: Test Results for #dateformat(now(),"full")#</h1>
 			<table style="font-family:verdana,arial;width:720px;">

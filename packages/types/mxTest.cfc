@@ -37,7 +37,7 @@
 				name="bReportPasses" type="boolean" default="0" ftDefault="0" 
 				ftType="boolean" ftHint="Set to true to report on passed tests" />
 	
-	<cfproperty name="lastrundate" type="datetime" hint="The last time this test was executed. Used to ensure that it won't accidentally get hit twice." />
+	<cfproperty name="lastrundate" type="date" hint="The last time this test was executed. Used to ensure that it won't accidentally get hit twice." />
 	
 	<cffunction name="ftEditTests" returntype="string" output="false" access="public" hint="UI for selecting the tests in this set">
 		<cfset var location = "" />

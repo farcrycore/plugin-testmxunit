@@ -285,101 +285,19 @@
 	</cffunction>
 	
 	
-	<cffunction name="getUsers" access="package" returntype="query" output="false" hint="Returns an array of all specified users">
-		<cfargument name="userlogins" type="string" required="true" hint="The user's login" />
-		
-		<cfset var qResult = querynew("empty") />
-		
-		<cfquery datasource="#application.dsn#" name="qResult">
-			select		*
-			from		dmUser
-			where		userlogin in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#arguments.userlogins#">)
-			order by	userid
-		</cfquery>
-		
-		<cfreturn qResult />
-	</cffunction>
-	
-	<cffunction name="getUserGroups" access="package" returntype="query" output="false" hint="Returns an array of all specified users">
-		<cfargument name="userlogins" type="string" required="true" hint="The user's login" />
-		
-		<cfset var qResult = querynew("empty") />
-		
-		<cfquery datasource="#application.dsn#" name="qResult">
-			select		*
-			from		dmUserToGroup
-			where		userID in (
-							select		userid
-							from		dmUser
-							where		userlogin in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#arguments.userlogins#">)
-						)
-			order by	userid
-		</cfquery>
-		
-		<cfreturn qResult />
-	</cffunction>
-	
 	<cffunction name="pinUsers" access="package" returntype="void" output="false" hint="Adds a user to the dirty list, to be removed on tearDown">
 		<cfargument name="userlogins" type="string" required="true" hint="The user's login" />
 		
-		<cfset stPin = structnew() />
+		<cfset var thislogin = "" />
 		
-		<cfset stPin.lUserLogins = arguments.userlogins />
-		<cfset stPin.qPreUsers = getUsers(arguments.userlogins) />
-		<cfset stPin.qPreUserGroups = getUserGroups(arguments.userlogins) />
-		<cfset stPin.lUserIDs = valuelist(stPin.qPreUsers.userid) />
-		
-		<cfset arrayappend(this.aPinUsers,stPin) />
+		<cfloop list="#arguments.userLogins#" index="thislogin">
+			<cfset pinObjects(typename="farUser",userid=thislogin) />
+		</cfloop>
 	</cffunction>
 	
 	<cffunction name="revertUsers" access="package" returntype="void" output="false" hint="Reverts all pinned users">
-		<cfset var i = 0 />
-		<cfset var stPin = structnew() />
 		
-		<cfloop from="1" to="#arraylen(this.aPinUsers)#" index="i"><cflog file="testing" text="Reverting user: #this.aPinUsers[i].lUserLogins#" />
-			<cfset stPin = this.aPinUsers[i] />
-			
-			<!--- Remove new users --->
-			<cfquery datasource="#application.dsn#">
-				delete
-				from	dmUser
-				where	userLogin in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#stPin.lUserLogins#" />)
-						<cfif len(stPin.lUserIDs)>
-							and userid not in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#stPin.lUserIDs#" />)
-						</cfif>
-			</cfquery>
-			
-			<!--- Update users --->
-			<cfloop query="stPin.qPreUsers">
-				<cfquery datasource="#application.dsn#">
-					update	dmUser
-					set		userPassword=<cfqueryparam cfsqltype="cf_sql_varchar" value="#stPin.qPreUsers.userPassword#" />,
-							userStatus=<cfqueryparam cfsqltype="cf_sql_varchar" value="#stPin.qPreUsers.userStatus#" />
-					where	userLogin=<cfqueryparam cfsqltype="cf_sql_varchar" value="#stPin.qPreUsers.userLogin#" />
-				</cfquery>
-			</cfloop>
-			
-			<!--- Remove groups for users --->
-			<cfquery datasource="#application.dsn#">
-				delete
-				from	dmuser
-				where	userLogin in (<cfqueryparam cfsqltype="cf_sql_varchar" list="true" value="#stPin.lUserLogins#" />)
-			</cfquery>
-			
-			<!--- Resave groups for users --->
-			<cfloop query="stPin.qPreUserGroups">
-				<cfquery datasource="#application.dsn#">
-					insert into dmUserToGroup (
-								userID,
-								groupID
-							)
-					values (
-								<cfqueryparam cfsqltype="cf_sql_integer" value="#stPin.qPreUserGroups.userID#" />,
-								<cfqueryparam cfsqltype="cf_sql_integer" value="#stPin.qPreUserGroups.groupID#" />
-							)
-				</cfquery>
-			</cfloop>
-		</cfloop>
+		<!--- Nothing special required --->
 	</cffunction>
 	
 	
@@ -526,9 +444,9 @@
 		<cfset var qObjects = querynew("empty") />
 		
 		<cfquery datasource="#application.dsn#" name="qObjects">
-			select		userLogin
-			from		#application.dbowner#dmUser
-			where		userlogin=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.userlogin#" />
+			select		userid
+			from		#application.dbowner#farUser
+			where		userid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.userlogin#" />
 						<cfif structkeyexists(arguments,"userstatus")>
 							AND userstatus=<cfqueryparam cfsqltype="cf_sql_integer" value="#arguments.userstatus#" />
 						</cfif>
@@ -551,23 +469,15 @@
 		
 		<cfquery datasource="#application.dsn#" name="qObjects">
 			select		u.userid
-			from		#application.dbowner#dmUser u
+			from		#application.dbowner#farUser u
 						inner join
-						#application.dbowner#dmUserToGroup ug
-						on u.userid=ug.userid
+						#application.dbowner#farUser_aGroups ug
+						on u.objectid=ug.parentid
 						inner join
-						#application.dbowner#dmGroup g
-						on ug.groupid=g.groupid
-			where		u.userlogin=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.userlogin#" />
-						and (
-							<cfif isnumeric(arguments.group)>
-								g.groupid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.group#" />
-							<cfelse>
-								1=0
-							</cfif>
-							OR
-							g.groupName=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.group#" />
-						)
+						#application.dbowner#farGroup g
+						on ug.data=g.objectid
+			where		u.userid=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.userlogin#" />
+						and g.title=<cfqueryparam cfsqltype="cf_sql_varchar" value="#arguments.group#" />
 		</cfquery>
 		
 		<cfif not qObjects.recordcount>

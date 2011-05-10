@@ -39,6 +39,12 @@
 	</cffunction>
 	
 	
+	<cffunction name="waitFor" returntype="void" output="false" access="public" hint="Waits for the specified time">
+		<cfargument name="timeout" type="numeric" required="true" hint="Number of seconds to wait." />
+		
+		<cfset this.thread.sleep(arguments.timeout * 1000) />
+	</cffunction>
+	
 	<cffunction name="waitForCondition" returntype="void" output="false" access="public" hint="Sleeps until condition is met, or until timeout">
 		<cfargument name="condition" type="string" required="true" hint="Standard loop condition value" />
 		<cfargument name="timeout" type="string" required="false" default="30" hint="Number of seconds to wait. Condition is checked every second." />
@@ -52,7 +58,7 @@
 			<cfif timesofar gt arguments.timeout>
 				<cfset fail(arguments.message) />
 			</cfif>
-			<cfset this.thread.sleep(1000) />
+			<cfset waitFor(1) />
 			<cfset conditiontrue = evaluate(arguments.condition) />
 		</cfloop>
 	</cffunction>

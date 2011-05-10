@@ -27,7 +27,7 @@
 	<cffunction name="createTemporaryObject" access="package" returntype="struct" output="false" hint="Creates an object and adds it to the pinned list">
 		<cfargument name="typename" type="string" required="true" hint="The type of the object" />
 		
-		<cfset var o = createobject("component",application.stCOAPI[arguments.typename].packagepath) />
+		<cfset var o = application.fapi.getContentType(arguments.typename) />
 		<cfset var stObj = duplicate(arguments) />
 		<cfset var lCategories = "" />
 		<cfset var oCategory = createobject("component","farcry.core.packages.farcry.category") />

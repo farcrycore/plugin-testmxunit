@@ -297,7 +297,8 @@
 								if (bRunning){
 									$j.ajax({
 										success:displayTestResult,
-										url:tests[index].url
+										url:tests[index].url,
+										timeout:100000
 									});
 								}
 							};

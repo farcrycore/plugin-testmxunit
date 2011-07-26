@@ -352,7 +352,12 @@
 		<cfset var testdependson = "" />
 		<cfset var testhint = "" />
 		<cfset var stTests = structnew() />
-		<cfset var testfound = false />>
+		<cfset var testfound = false />
+		<cfset var protocol = "http" />
+		
+		<cfif cgi.https eq "on">
+			<cfset protocol = "https" />
+		</cfif>
 		
 		<cfloop list="#arguments.testcase.tests#" index="testpath">
 			<cfset componentpath = listdeleteat(testpath,listlen(testpath,"."),".") />
@@ -410,7 +415,7 @@
 					<cfset querysetcell(qTests,"testname",testtitle) />
 					<cfset querysetcell(qTests,"testhint",testhint) />
 					<cfset querysetcell(qTests,"testdependson",testdependson) />
-					<cfset querysetcell(qTests,"url","http://#cgi.http_host#/mxunit/runtests.cfm?testset=#arguments.testcase.objectid#&suite=#componentpath#&test=#thistest#&host=#url.host#&ajaxmode=1&remote=0") />
+					<cfset querysetcell(qTests,"url","#protocol#://#cgi.http_host#/mxunit/runtests.cfm?testset=#arguments.testcase.objectid#&suite=#componentpath#&test=#thistest#&host=#url.host#&ajaxmode=1&remote=0") />
 				</cfif>
 			</cfloop>
 		</cfloop>

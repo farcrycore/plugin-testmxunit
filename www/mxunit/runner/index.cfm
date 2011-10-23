@@ -5,7 +5,7 @@ Wrapper for HtmlRunner
  <cfsetting showdebugoutput="false" />
  <cfparam name="url.test" default="" />
  <cfparam name="url.componentPath" default="" />
- <cfparam name="url.output" default="extjs" />
+ <cfparam name="url.output" default="html" />
 <html>
 <head>
 

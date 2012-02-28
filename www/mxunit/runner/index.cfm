@@ -1,83 +1,50 @@
+<cfparam name="url.showdebugoutput" default="false">
+<cfsetting showdebugoutput="#url.showdebugoutput#" />
 
-<!---
-Wrapper for HtmlRunner
- --->
- <cfsetting showdebugoutput="false" />
- <cfparam name="url.test" default="" />
- <cfparam name="url.componentPath" default="" />
- <cfparam name="url.output" default="html" />
-<html>
-<head>
+<cfparam name="url.test" default="" />
+<cfparam name="url.componentPath" default="" />
 
- <title>MXUnit HTML Test Runner</title>
+<cfset pathBase = '../' />
+<cfset title = '#url.test# - Runner' />
 
-</head>
-<body>
- <cfscript>
-   testIsPresent = cgi.path_info is not "" OR url.test is not "";
-   testToRun =  iif(cgi.path_info is "", de(url.test), de(cgi.path_info));
-  </cfscript>
+<cfinclude template="#pathBase#resources/theme/header.cfm" />
 
+<cfset testToRun = url.test />
 
-  <cfoutput>
-  <div style="padding:4;width:100%;overflow:auto">
-  <form id="runnerForm" action="index.cfm" method="get">
- &nbsp;&nbsp;<img src="../images/no-bugs.gif" align="left">
- <h2 style="color:navy;font-family:verdana;font-weight:bold;font-size:14px">
- &nbsp;&nbsp;&nbsp;Enter a TestCase,TestSuite, or Directory &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  (<code>componentPath</code> if Directory):
- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <br />
- &nbsp;&nbsp;&nbsp;<input type="text" id="test" name="test" value="#testToRun#" size="60" />
- <input type="text" id="componentPath" name="componentPath" value="#url.componentPath#" size="30" />
- <br />
- &nbsp;&nbsp;&nbsp;<input type="submit" value="Run">
- <input type="button" value="Clear" onclick="document.forms[0].test.value='';location.href='./index.cfm'" />
+<!--- Add the js for the runner --->
+<cfset arrayAppend(scripts, 'runner.js') />
 
-  <input type="button" value="?" onClick="toggleHelp()" />
+<cfoutput>
+	<form id="runnerForm" action="index.cfm" method="get">
+		<div class="grid_8">
+			<div>
+				<label for="test">
+					TestCase, TestSuite, or Directory: <br />
+					<input type="text" id="test" name="test" value="#testToRun#" size="60" />
+				</label>
+			</div>
+		</div>
 
+		<div class="grid_4">
+			<div>
+				<label for="componentPath">
+					(<code>componentPath</code> if Directory):<br />
+					<input type="text" id="componentPath" name="componentPath" value="#url.componentPath#" size="30" />
+				</label>
+			</div>
+		</div>
 
- <div id="help" style="position:relative;left:100;border:1px ridge silver;visibility:hidden;display:none;width:584;padding:4">
-  Usage:
-  <p style="font-size:11px;font-weight:normal">
-  TestCase example:  <code style="color:darkred">mxunit.tests.framework.AssertTest</code> [<a href="##" onClick="runExample('mxunit.tests.framework.AssertTest','')">Try</a>]<br />
-  TestSuite example: <code style="color:darkred">mxunit.tests.framework.fixture.ATestSuite</code> [<a href="##" onClick="runExample('mxunit.tests.framework.fixture.ATestSuite','')">Try</a>]<br />
-  Directory example: <code style="color:darkred">C:\CFusionMX7\wwwroot\mxunit\tests\samples\</code> [<a href="##" onClick="runExample('C:\\CFusionMX7\\wwwroot\\mxunit\\tests\\samples\\','mxunit.tests.samples')">Try</a>]<br />
+		<div class="grid_12 align-center">
+			<input type="submit" value="Run Tests" id="btnRun">
+			<input type="reset" value="Clear" id="btnClear" />
+		</div>
 
-  </p>
+		<div class="clear"><!-- clear --></div>
+	</form>
+</cfoutput>
 
- <script>
- function runExample(example,cp){
- document.getElementById('test').value = example;
- document.getElementById('componentPath').value = cp;
- document.getElementById('runnerForm').submit();
+<cfif testToRun NEQ "">
+	<cfinvoke component="HtmlRunner" method="run" test="#testToRun#" componentPath="#url.componentPath#" />
+</cfif>
 
- }
-
- function toggleHelp(){
-  var help = document.getElementById('help');
-  var hidden = help.style.visibility == 'hidden';
-  if(hidden){
-   help.style.visibility = 'visible';
-   help.style.display = 'block';
-  }
-  else{
-    help.style.visibility = 'hidden';
-    help.style.display = 'none';
-  }
- }
- </script>
- </div>
-
- </form>
- </cfoutput>
- </h2>
- </div>
- <cfif testToRun is not "">
- <cfinvoke component="HtmlRunner" method="run" test="#testToRun#" componentPath="#url.componentPath#" output="#url.output#" >
- </cfif>
-
-</body>
-</html>
-
+<cfinclude template="#pathBase#resources/theme/footer.cfm" />

@@ -6,22 +6,21 @@
    
    Usage: ant -f sample-build.xml
    
-   Notes: This assumes installation of mxunit directly under web root
-          in a CFusionMx7 Installation on a Windows C drive.
-          
-          If mxunit is installed elsewhere, or a different version
-          is installed, you will need change the directory parameters
-          to point to the correct locations.
-
+   Notes: This assumes installation of mxunit directly under web root.
+          The webroot, in this example, is in D:/webapps/ on an MS Windows
+          installation.
+         
 -->
 
 <project name="MXUnitTask" basedir="." default="main">
    
-    <property name="mxunit.jar" value="lib/mxunit-ant.jar" />
+    <property name="mxunit.jar" value="lib/mxunit-ant-java5.jar" />
     <property name="junit.out.dir.xml" value="testresults" />
     <property name="junit.out.dir.html" value="testresults/html" />
     <property name="output.dir" value="tmp" />
     <property name="style.dir" value="xsl/" />
+    <property name="web.root" value="D:/webapps/" />
+    <property name="server.name" value="localhost" />
 
 
 
@@ -34,7 +33,7 @@
      
      
      <taskdef name="mxunittask" classname="org.mxunit.ant.MXUnitAntTask" classpath="${mxunit.jar}"   />
-       <mxunittask server="localhost" port="8500"
+       <mxunittask server="${server.name}" 
                    defaultrunner="/mxunit/runner/HttpAntRunner.cfc"
                    outputdir="${output.dir}"
                    verbose="true"
@@ -45,19 +44,22 @@
           
           <directory runner="/mxunit/runner/HttpAntRunner.cfc"
                      remoteMethod="run"
-                     path="C:\CFusionMX7\wwwroot\mxunit\tests\framework" 
+                     path="${web.root}mxunit/tests/framework"
+                     componentPath="mxunit.tests.framework"
                      packageName="mxunit.framework"
                      recurse="false" />
           
           <directory runner="/mxunit/runner/HttpAntRunner.cfc"
                      remoteMethod="run"
-                     path="C:\CFusionMX7\wwwroot\mxunit\tests\runner" 
+                     path="${web.root}mxunit/tests/runner" 
+                     componentPath="mxunit.tests.runner"
                      packageName="mxunit.runner"
                      recurse="false" />         
                      
          <directory runner="/mxunit/runner/HttpAntRunner.cfc"
                      remoteMethod="run"
-                     path="C:\CFusionMX7\wwwroot\mxunit\tests\PluginDemoTests" 
+                     path="${web.root}mxunit/PluginDemoTests"
+                     componentPath="mxunit.PluginDemoTests"
                      packageName="mxunit.plugintests"
                      recurse="false"  />
                      
@@ -92,7 +94,7 @@
   <!-- To fire up a browser with the test results. May not work on your machine  -->
   
   <target name="browse" depends="junitreport">
-    <exec executable="C:\Program Files\Internet Explorer\iexplore.exe">
+    <exec executable="C:\Programs\Mozilla Firefox\firefox.exe">
       <arg value="${user.dir}\testresults\html\index.html"/>
     </exec>
   </target>

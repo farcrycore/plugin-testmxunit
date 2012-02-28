@@ -1,10 +1,15 @@
-<?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<link type="text/css" href="main.css" rel="stylesheet" />
-<title>MXUnit Test Generator</title>
+<cfsetting showdebugoutput="false" />
+
+<cfparam name="url.test" default="" />
+<cfparam name="url.componentPath" default="" />
+<cfparam name="url.output" default="extjs" />
+<cfset pathBase = '../' />
+<cfset title = 'Test Generator' />
+
+<cfinclude template="../resources/theme/header.cfm" />
+
+<cfset scripts = arrayNew(1) />
+<cfset arrayAppend(scripts, 'generator.js') />
 
 <cfoutput>
 	<cfscript>
@@ -18,49 +23,24 @@
 		lastTemplate = getProfileString( getProfilePath() , "blaster" , "template" );
 		cfversion    = val( listFirst(server.ColdFusion.ProductVersion) );
 		
-		if (NOT IsBoolean(recurse))
-		{
+		if (NOT IsBoolean(recurse)) {
 			recurse = false;
 		}
 		
-		if (NOT IsBoolean(overwrite))
-		{
+		if (NOT IsBoolean(overwrite)) {
 			overwrite = false;
 		}
 	</cfscript>
 	
 	<cfset templateDirectory = getDirectoryFromPath( getCurrentTemplatePath() ) & '/templates' />
-
+	
 	<cfdirectory 
 		action    = "list" 
 		directory = "#templateDirectory#"
 		filter    = "*.xslt"
 		name      = "templates">
-	
-	<script type="text/javascript">
-		function toggle(frm)
-		{
-			for ( ii=0 ; ii < frm.tableNameList.length ; ii++)
-			{
-				frm.tableNameList[ii].checked = frm.all.checked;
-			}
-		}
-		
-		function suggest(frm,target,delim)
-		{
-			if (delim == "file")
-			{
-				target.value = frm.value + "/tests";
-			} else {
-				target.value = frm.value + ".tests";
-			}
-		}
-	</script>
-</cfoutput>	
-</head>
-<cfoutput>
-<body>
-	<H1>MXUnit Test Generator</H1>
+
+<div class="grid_12">
 	<h2>Setup</h2>
 
 	<form 
@@ -163,8 +143,8 @@
 				</tr>
 			</tfoot>
 		</table>
-	</form>	
-<!--- Notes --->
+	</form>
+	<!--- Notes --->
 	<h2>Notes</h2>
 	<ul>
 		<li>
@@ -183,6 +163,5 @@
 			check this entry first.
 		</li>
 	</ul>	
-</body>
-</html>
+</div>
 </cfoutput>

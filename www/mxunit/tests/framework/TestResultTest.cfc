@@ -4,22 +4,8 @@
 
 <cffunction name="testGetInstallRoot">
   <cfscript>
-   var root = this.testResult.getInstallRoot("foo.bar.nanoo.mxunit.framework.TestResult");
-   debug(root);
-   assertEquals("/foo/bar/nanoo/mxunit/", root);
-
    root = this.testResult.getInstallRoot();
-   debug(root);
-   assertEquals("/mxunit/",root);
-
-   root = this.testResult.getInstallRoot("mxunit.mxunit.framework.TestCase");
-   debug(root);
-   assertEquals("/mxunit/mxunit/",root);
-
-   root = this.testResult.getInstallRoot("mxunit.framework.TestCase");
-   debug(root);
-   assertEquals("/mxunit/",root);
-
+   assertEquals("#getContextRoot()#/mxunit",root);
   </cfscript>
 </cffunction>
 
@@ -50,6 +36,8 @@
 	 mode = 'junitxml';
 	 result = this.testResult.getResultsOutput(mode);
 	 //assertIsXml(result);
+	 debug(result);
+
 
 	 mode = 'query';
 	 result = this.testResult.getResultsOutput(mode);
@@ -178,10 +166,47 @@
 
 
 <cffunction name="testSetDebug">
-	<cfset var actual = "" />
-  <cfinvoke component="#this.testResult#"  method="setDebug" returnVariable="actual">
-    <cfinvokeargument name="debugData" value="" />
-  </cfinvoke>
+	<cfscript>
+  var objs = arrayNew(1);
+  var result =  createObject("component","mxunit.framework.TestResult");
+  var cu =  createObject("component","mxunit.framework.ComponentUtils");
+  var actual =  "";
+  objs[1] = createObject("component","mxunit.framework.Assert");
+  objs[2] = this;
+  objs[3] = createObject("java","java.util.List");
+
+  result.setDebug(objs[1]);
+  actual = result.getDebug();
+  assertTrue(isObject(actual[1]),"Should return the object itself");
+
+
+   result.setDebug(objs[2]);
+   actual = result.getDebug();
+   assertTrue(isObject(actual[1]),"Should return the object itself");
+
+   result.setDebug(objs[3]);
+   actual = result.getDebug();
+   assertEquals("class coldfusion.runtime.java.JavaProxy", getMetadata(actual[1]),"Java Object: May fail in Railo, OBD");
+
+
+   result.setDebug(arrayNew(1));
+   actual = result.getDebug();
+   assertIsArray(actual);
+
+
+   result.setDebug(structNew());
+   actual = result.getDebug();
+   assertIsArray(actual);
+
+   result.setDebug(-3213213213213213211222222222222222222222222222222222222222222222221);
+   actual = result.getDebug();
+   assertEquals(-3213213213213213211222222222222222222222222222222222222222222222221, actual[1]);
+
+   result.setDebug(10002234234234234232.1789789789789789789236654);
+   actual = result.getDebug();
+   assertEquals(10002234234234234232.1789789789789789789236654, actual[1]);
+
+  </cfscript>
 </cffunction>
 
 
@@ -268,13 +293,27 @@
   </cfinvoke>
 </cffunction>
 
+<cffunction name="normalizeQueryStringShouldIgnoreComplexObjects" hint="Bug and patch by Luis Majano - 3.23.10">
+	<cfscript>
+	var u = structnew(); //url rep
+	var o = structnew();
+	o.foo = "bar";
+	u.method = "runtestremote";
+	u.output = "html";
+	u.a = [1,2,'123',o]; //add array to url
+	u.cfc = this; //add cfc obj to url
+	u.complex = o;  //add struct to url
+	qs = this.testresult.normalizeQueryString(u,'some_random_known_output'); //should ignore or err
+	assertEquals("method=runtestremote&output=some_random_known_output" ,qs);
+	</cfscript>
+</cffunction>
+
 <cffunction name="testNormalizeQueryString">
 	<cfset var qs = "" />
 	<cfset var u = structnew()>
 	<cfset u.method = "runtestremote">
 	<cfset u.output = "extjs">
 	<cfset qs = this.testresult.normalizeQueryString(u,'html')>
-	<cfset debug("querystring is #qs#")>
 	<cfset assertEquals(1,ListValueCountNoCase(qs,"output=html","&"))>
 	<cfset assertEquals(1,ListValueCountNoCase(qs,"method=runtestremote","&"))>
 	<cfset assertEquals(0,ListValueCountNoCase(qs,"output=extjs","&"))>

@@ -1,21 +1,25 @@
+<cfcomponent displayname="MxunitInstallVerificationTest" extends="framework.TestCase">
+			<cffunction name="testThis" >
+				<cfset assertEquals("this","this") />
+			</cffunction>
 
-<cfcomponent displayname="MxunitInstallVerificationTest" extends="farcry.plugins.testMXUnit.www.mxunit.framework.TestCase">
+			<cffunction name="testThat" >
+				<cfset assertEquals("this","that", "This is an intentional failure so you see what it looks like") />
+			</cffunction>
 
-<cffunction name="testThis" >
-  <cfset assertEquals("this","this") />
-  </cffunction>
+			<cffunction name="testSomething" >
+			   <cfset a = arrayNew(1)>
+			   <cfset a[1] = "some debug traces" />
+			    <cfset debug(a) />
+				<cfset assertEquals(1,1) />
+			</cffunction>
 
-  <cffunction name="testThat" >
-    <cfset assertEquals("this","that", "This is an intentional failure so you see what it looks like") />
-  </cffunction>
+			<cffunction name="testSomethingElse">
+				<cfset assertTrue(true) />
+			</cffunction>
 
-  <cffunction name="testSomething" >
-  <cfset assertEquals(1,1) />
-  </cffunction>
+			<cffunction name="testIntentionalError">
+				<cfset foo = bar />
+			</cffunction>
 
-
-  <cffunction name="testSomethingElse">
-    <cfset assertTrue(true) />
-  </cffunction>
-
-</cfcomponent>
+		</cfcomponent>

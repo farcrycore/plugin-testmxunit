@@ -4,14 +4,16 @@ NOTE: these tests take a long time to run. A lot of the time is in a subset of t
 --->
 <cfsetting requesttimeout="300">
 
+
 <cfparam name="url.output" default="extjs">
 <cfparam name="url.debug" default="false">
 <cfparam name="url.quiet" default="false">
 
-<cfset dir = expandPath(".")>
+<cfset dir = getDirectoryFromPath(getCurrentTemplatePath()) />
 <cfset DTS = createObject("component","mxunit.runner.DirectoryTestSuite")>
 
-<cfset excludes = "fixture,samples">
+
+<cfset excludes = "fixture,samples,install">
 
 <cfinvoke component="#DTS#" 
 	method="run"

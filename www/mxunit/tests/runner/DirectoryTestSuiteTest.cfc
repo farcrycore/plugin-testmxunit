@@ -91,7 +91,7 @@
 	<cfset var testResult2 = "" />
   <cfinvoke component="#this.directoryTestSuite#"  method="run" returnVariable="testResult">
 	<!--- make sure it works without trailing slashes --->
-    <cfinvokeargument name="directory" value="#rootDir#PluginDemoTests#sep#SubDir" />
+    <cfinvokeargument name="directory" value="#rootDir#/PluginDemoTests#sep#SubDir" />
 	<cfinvokeargument name="componentPath" value="mxunit.PluginDemoTests.SubDir">
     <cfinvokeargument name="recurse" value="false" />
     <cfinvokeargument name="excludes" value="false" />
@@ -102,7 +102,7 @@
 	<cfset assertTrue(ArrayLen(testResult.getResults()) GT 0)>
 <!--- make sure it works with trailing slashes --->
  <cfinvoke component="#this.directoryTestSuite#"  method="run" returnVariable="testResult2">
-    <cfinvokeargument name="directory" value="#rootDir#PluginDemoTests#sep#SubDir#sep#" />
+    <cfinvokeargument name="directory" value="#rootDir#/PluginDemoTests#sep#SubDir#sep#" />
 	<cfinvokeargument name="componentPath" value="mxunit.PluginDemoTests.SubDir">
     <cfinvokeargument name="recurse" value="false" />
     <cfinvokeargument name="excludes" value="false" />
@@ -129,9 +129,9 @@
 </cffunction>
 
 <cffunction name="testRunWithBadRelativeDirectoryShouldFail">
-	 
+
 	 <cftry>
-	 
+
 	  <cfinvoke component="#this.directoryTestSuite#"  method="run" returnVariable="testResult">
 		<!--- make sure it works without trailing slashes --->
 	    <cfinvokeargument name="directory" value="/mxunit/PluginDemoTests/SubDirx" />
@@ -139,7 +139,7 @@
 	    <cfinvokeargument name="recurse" value="true" />
 	    <cfinvokeargument name="refreshCache" value="false" />
 	  </cfinvoke>
-	  
+
 	  <cfthrow type="custom" message="should not throw this error">
 	<cfcatch type="custom">
 		<cfthrow message="should not have gotten into this catch. instead, should've thrown an error inside the DirectoryTestSuite itself">
@@ -148,7 +148,7 @@
 	<cfcatch type="any">
 	</cfcatch>
 	</cftry>
-	 
+
 </cffunction>
 
 <cffunction name="componentWithParseErrorShouldBeInTestResult">
@@ -200,7 +200,7 @@
 	<cfset var test = "" />
 	<cfset var testResult = "" />
 	<cfinvoke component="#this.directoryTestSuite#"  method="run" returnVariable="testResult">
-		<cfinvokeargument name="directory" value="#rootDir#PluginDemoTests/inheritance" />
+		<cfinvokeargument name="directory" value="#rootDir#/PluginDemoTests/inheritance" />
 		<cfinvokeargument name="componentPath" value="mxunit.PluginDemoTests.inheritance">
 		<cfinvokeargument name="recurse" value="false" />
 		<cfinvokeargument name="excludes" value="SomeExtendingTest" />
@@ -250,13 +250,11 @@
 <cfset this.directoryTestSuite = createObject("component","mxunit.runner.DirectoryTestSuite") />
 <cfset variables.cu = createObject("component","mxunit.framework.ComponentUtils")>
 
-<cfset variables.rootDir = expandPath("/mxunit/")>
-<cfset variables.testDir = rootDir &  "tests/runner/"/>
-<cfset variables.fixtureDir = rootDir & "tests/bugs/fixture/">
-<cfset debug(testDir)>
-<!--- Add additional set up code here--->
+<cfset variables.rootDir = expandPath("/mxunit")>
+<cfset variables.testDir = variables.rootDir &  "/tests/runner/"/>
+<cfset variables.fixtureDir = variables.rootDir & "/tests/bugs/fixture/">
+<cfset debug(variables.rootDir)>
 </cffunction>
-
 
 <cffunction name="tearDown">
 </cffunction>

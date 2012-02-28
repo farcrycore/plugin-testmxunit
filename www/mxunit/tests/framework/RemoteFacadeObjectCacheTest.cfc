@@ -12,7 +12,6 @@
 		<cfset var new2 = "" />
 		<cfset var final = "" />
 		<cfset var initial = variables.cache.getSuitePoolCount()>
-		<cfset debug("initial: #initial#")>
 		<cfset new1 = variables.cache.startTestRun()>
 		<cfset new2 = variables.cache.startTestRun()>
 		<cfset final = variables.cache.getSuitePoolCount()>
@@ -60,22 +59,23 @@
 		<cfset var path = "mxunit.PluginDemoTests.SingleMethodTest">
 		<cfset var obj = variables.cache.getObject(path,"")>
 		<cfset var md = getMetadata(obj)>
-		<cfset assertEquals(path,md.name)>
+		<cfset assertEquals(path, md.name)>
 		<cfset variables.cache.purgeSuitePool()>
 	</cffunction>
 
 	<cffunction name="testGetObjectWhenCachePurged">
 		<cfset var path = "mxunit.PluginDemoTests.SingleMethodTest">
 		<cfset var key = variables.cache.startTestRun()>
-		<cfset var obj = variables.cache.getObject(path,key)>
+		<!--- we need getBaseTarget because by the time the test gets run, it'll possibly be wrapped in a decorator --->
+		<cfset var obj = variables.cache.getObject(path, key).getBaseTarget()>
 		<cfset var md = getMetadata(obj)>
-		<cfset assertEquals(path,md.name)>
+		<cfset assertEquals(path, md.name)>
 
 		<cfset variables.cache.purgeSuitePool()>
 
-		<cfset obj = variables.cache.getObject(path,key)>
+		<cfset obj = variables.cache.getObject(path, key).getBaseTarget()>
 		<cfset md = getMetadata(obj)>
-		<cfset assertEquals(path,md.name)>
+		<cfset assertEquals(path, md.name)>
 
 		<cfset variables.cache.purgeSuitePool()>
 	</cffunction>

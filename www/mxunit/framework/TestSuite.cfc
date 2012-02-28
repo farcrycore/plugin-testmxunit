@@ -1,262 +1,214 @@
 <cfcomponent displayname="TestSuite" extends="Test" hint="Responsible for creating and running groups of Tests.">
-
-  <cfset cu = createObject("component","ComponentUtils")>
-  <cfparam name="this.testSuites" default="#structNew()#" />
-
-  <cfparam name="this.tests" default="#arrayNew(1)#" />
-  <!--- Generated content from method --->
-  <cfparam name="this.c" default="Error occurred. See stack trace." />
-
-
-<cffunction name="TestSuite" access="public" returntype="TestSuite" hint="Constructor">
-  <!--- redundant? --->
-  <cfset this.testSuites = structNew() />
-  <cfreturn this />
-</cffunction>
-
-
-
- <cffunction name="addTest" access="remote" returntype="void" hint="Adds a single TestCase to the TestSuite.">
-
-  <!---
-   Should be of Type "Test". Since All TestCases and TestSuites
-   are inherited from Test, we should be able to add them here
-
-   Also, need to
-   --->
-
-  <cfargument name="componentName" type="string" required="yes" />
-  <cfargument name="method" type="string" required="yes" />
-  <cfargument name="componentObject" type="Any" required="no" default="">
-
-  <cfscript>
-   try{
-
-     this.tempStruct = structNew();
-     this.tempStruct.ComponentObject = arguments.ComponentObject;
-     //If the test suite exists get the method array and
-     //append the new method name ...
-     // update an existing test suite
-     if (structKeyExists(this.testSuites, componentName)) {
-      this.tempStruct = structFind(this.testSuites, arguments.componentName);
-      tempArray = structFind(this.tempStruct, "methods");
-      arrayAppend(tempArray,arguments.method);
-      //writeoutput(tempArray[1] & "  "  & tempArray[2]);
-      structUpdate(this.tempStruct, "methods", tempArray);
-      structUpdate(this.testSuites,arguments.componentName, this.tempStruct);
-     }
-     else{
-       //Begin a new test Suite
-       structInsert(this.testSuites, arguments.componentName, this.tempStruct);
-       //Grab all the methods that begin with the string 'test' ...
-       tests = listToArray(arguments.method);
-       structInsert(evaluate("this.testSuites." & arguments.componentName), "methods", tests);
-     }
-    }
-    catch (Exception e) {
-      writeoutput(e.getMessage());
-    }
-  </cfscript>
-</cffunction>
-
-
-
-<!--- Maybe should be named addList --->
-<!--- Adds a list of methods belonging to a component into a testSuite object --->
-<cffunction name="add" access="remote" returntype="void" hint="Adds a list of TestCases to the TestSuite">
-  <cfargument name="componentName" type="Any" required="yes" />
-  <cfargument name="methods" type="string" required="yes" />
-  <cfargument name="componentObject" type="Any" required="no" default="">
-  <cfscript>
-   try{
-      //If the component already has methods, just update the method array
-      if ( structKeyExists(this.testSuites,arguments.componentName) ) {
-
-         tests = structFind(this.testSuites, arguments.componentName);
-         for( i = 1; i lte listLen(arguments.methods); i = i + 1 ) {
-            arrayAppend(tests.methods, listGetAt(arguments.methods,i));
-         }
-        return;
-       }
-
-     //else convert the list of methods to an array and add it to the test suite
-     this.tempStruct = structNew();
-     this.tempStruct.ComponentObject = arguments.ComponentObject;
-     this.tempStruct.methods = listToArray(arguments.methods);
-     this.testSuites[arguments.componentName] = this.tempStruct;
-    }
-    catch (any e) {
-      writeoutput("Error Adding Tests : " & e.getType() & "  " &  e.getMessage() & " " & e.getDetail());
-    }
-  </cfscript>
-</cffunction>
-
-
-
-<cffunction name="addAll" access="remote" returntype="any" output="false" hint="Adds all runnable TestCases to the TestSuite">
-  <cfargument name="ComponentName" type="any" required="yes" />
-  <cfargument name="ComponentObject" type="any" required="false" default="">
-  <cfset var a_methods = "">
-
-  <cfif isSimpleValue(arguments.ComponentObject)>
-   	<cfset ComponentObject = createObject("component",arguments.ComponentName) />
-  </cfif>
-	<cfset a_methods = ComponentObject.getRunnableMethods()>
+	<cfset cu = createObject("component","ComponentUtils") />
 	
-  	<cfset add(arguments.ComponentName,ArrayToList(a_methods),ComponentObject)>
-  <cfreturn this />
-</cffunction>
 
+	<cfparam name="this.testSuites" default="#getMap()#" />
+	<cfparam name="this.tests" default="#arrayNew(1)#" />
 
-<cffunction name="run" returntype="WEB-INF.cftags.component" access="remote" output="true" hint="Primary method for running TestSuites and individual tests.">
-  <cfargument name="results" hint="The TestResult collecting parameter." required="no" type="TestResult" default="#createObject("component","TestResult").TestResult()#" />
-	<cfargument name="testMethod" hint="A single test method to run." type="string" required="no" default="">
-	<cfset var methods = ArrayNew(1)>
-	<cfset var o = "">
-	<cfset var start = "">
-	<cfset var end = "">
-	<cfset var i = "">
-	<cfset var j = "">
-	<cfset var methodName = "">
+	<!--- Generated content from method --->
+	<cfparam name="this.c" default="Error occurred. See stack trace." />
+	<cfparam name="this.dataProviderHandler" default='#createObject("component","DataproviderHandler")#' />
+	<cfparam name="this.MockingFramework" default="" />
 
-   <cfset var components = structKeyArray(this.suites()) />
-   <!---  //Returns a structure corresponding to the key/componentName --->
-   <cfset var temp = this.suites() />
+	<cfparam name="variables.requestScopeDebuggingEnabled" type="boolean" default="false" />
 
-   <cfloop from="1" to="#arrayLen(components)#" index="i">
-    <cfset this.suites = structFind(temp, components[i] ) />
+	<cffunction name="TestSuite" access="public" returntype="TestSuite" hint="Constructor">
+		<cfreturn this />
+	</cffunction>
 
-	<cfif len(arguments.testMethod)>
-		<cfset methods[1] = arguments.testMethod>
-	<cfelse>
-		 <cfset methods = structFind(this.suites, "methods") />
-	</cfif>
+	<!---
+		Should be of Type "Test". Since All TestCases and TestSuites
+		are inherited from Test, we should be able to add them here
 
+		Also, need to
+	--->
+	<cffunction name="addTest" access="remote" returntype="void" hint="Adds a single TestCase to the TestSuite.">
+		<cfargument name="componentName" type="string" required="yes" />
+		<cfargument name="method" type="string" required="yes" />
+		<cfargument name="componentObject" type="Any" required="no" default="" />
 
-    <cfset componentObject = structFind(this.suites,"ComponentObject")>
-    <cfif isSimpleValue(componentObject)>
-      <cfset o = createObject("component", components[i]).TestCase(componentObject) />
-    <cfelse>
-      <cfset o = componentObject.TestCase(componentObject)>
-    </cfif>
+		<cfscript>
+			var newStruct = {};
+			try{
+				this.tempStruct = structNew();
+				this.tempStruct.ComponentObject = arguments.ComponentObject;
 
+				// If the test suite exists get the method array and
+				// append the new method name ...
+				// update an existing test suite
+				if (this.testSuites.containsKey(arguments.componentName)) {
+					this.tempStruct = this.testSuites.get(arguments.componentName);
 
+					tempArray = structFind(this.tempStruct, "methods");
+					arrayAppend(tempArray,arguments.method);
 
-    <cfloop from="1" to="#arrayLen(methods)#" index="j">
-		<cfset   methodName = methods[j] />
-      	<cfset this.c = "">
-     <cfset  start = getTickCount() />
+					structUpdate(this.tempStruct, "methods", tempArray);
+					this.tesSuites.put(arguments.componentName, this.tempStruct);
+				} else{
+					//Begin a new test Suite
+					this.testSuite.put(arguments.componentName, this.tempStruct);
 
-     <cftry>
-		<cfset  results.startTest(methodName,components[i]) />
-       <!---  //Get start time    //Execute the test --->
+					//Grab all the methods that begin with the string 'test' ...
+					tests = listToArray(arguments.method);
 
-		 <cfinvoke component="#o#" method="setUp">
+					newStruct.methods = tests;
 
-      <cfsavecontent variable="this.c">
-		   <cfinvoke component="#o#" method="#methodName#">
-      </cfsavecontent>
+					this.testSuites.put(arguments.componentName,newStruct);
+				}
+			} catch (Exception e) {
+				writeoutput(e.getMessage());
+			}
+		</cfscript>
+	</cffunction>
 
-       <cfset  results.addSuccess('Passed') />
-       <cfset  results.addContent(this.c) /> <!--- //Add the trace message from the TestCase instance --->
+	<!---
+		Maybe should be named addList
+		Adds a list of methods belonging to a component into a testSuite object
+	--->
+	<cffunction name="add" access="remote" returntype="void" hint="Adds a list of TestCases to the TestSuite">
+		<cfargument name="componentName" type="Any" required="yes" />
+		<cfargument name="methods" type="string" required="yes" />
+		<cfargument name="componentObject" type="Any" required="no" default="" />
 
-	 <cfcatch type="mxunit.exception.AssertionFailedError">
-        <cfset results.addFailure(cfcatch) />
-        <cfset results.addContent(this.c) /><!--- Bill::10.04.07 Not sure if this will work... --->
-        <cflog file="mxunit" type="error" application="false" text="#cfcatch.message#::#cfcatch.detail#">
-      </cfcatch>
-      <cfcatch type="any">
-		<cfset o.debug(cfcatch)>
-        <cfset results.addError(cfcatch) />
-        <cfset results.addContent(this.c) />
-        <cflog file="mxunit" type="error" application="false" text="#cfcatch.message#::#cfcatch.detail#" />
-      </cfcatch>
+		<cfif isSimpleValue(arguments.ComponentObject)>
+			<cfset ComponentObject = createObject("component",arguments.ComponentName) />
+		</cfif>
 
-      </cftry>
+		<cfscript>
+			try{
+				//If the component already has methods, just update the method array
+				if ( this.testSuites.containsKey(arguments.componentName) ) {
+					tests = testSuites.get(arguments.componentName);
 
-	<cftry>
-		<cfinvoke component="#o#" method="tearDown">
-	<cfcatch type="any">
-		<cfset results.addError(cfcatch)>
-	</cfcatch>
-	</cftry>
+					for( i = 1; i lte listLen(arguments.methods); i = i + 1 ) {
+						arrayAppend(tests.methods, listGetAt(arguments.methods,i));
+					}
 
-	<cfset  results.addTrace( o.getTrace() ) />
-	<!--- //add the deubg array to the test result item --->
-	<cfset  results.setDebug( o.getDebug()) />
-	<!--- // make sure the debug buffer is reset for the next text method  --->
-	<cfset  o.clearDebug()  />
-	<!---  //reset the trace message.Bill 6.10.07 --->
-	<cfset  o.traceMessage="" />
-	<cfset  end = getTickCount() />
-	<cfset  results.addProcessingTime(end-start) />
+					return;
+				}
 
-    <cfset results.endTest(methodName) />
+				//else convert the list of methods to an array and add it to the test suite
+				this.tempStruct = structNew();
+				this.tempStruct.ComponentObject = arguments.ComponentObject;
+				this.tempStruct.methods = listToArray(arguments.methods);
+				this.testSuites.put(arguments.componentName, this.tempStruct);
+			} catch (any e) {
+				writeoutput("Error Adding Tests : " & e.getType() & "  " &  e.getMessage() & " " & e.getDetail());
+			}
+		</cfscript>
+	</cffunction>
 
-    </cfloop> <!--- end j loop --->
+	<cffunction name="addAll" access="remote" returntype="any" output="false" hint="Adds all runnable TestCases to the TestSuite">
+		<cfargument name="ComponentName" type="any" required="yes" />
+		<cfargument name="ComponentObject" type="any" required="false" default="" />
 
+		<cfset var a_methods = "" />
 
-    </cfloop><!--- end i loop --->
-   <cfset results.closeResults() /><!--- Get correct time run for suite --->
-  <cfreturn results />
-</cffunction>
+		<cfif isSimpleValue(arguments.ComponentObject)>
+			<cfset ComponentObject = createObject("component",arguments.ComponentName).TestCase() />
+		</cfif>
+ 	
+		<cfset a_methods = ComponentObject.getRunnableMethods() />
 
-<cffunction name="runTestRemote" access="remote" output="true">
-  <cfargument name="output" type="string" required="false" default="extjs" hint="Output format: html,xml,junitxml,extjs "><!--- html,xml,junitxml,extjs --->
-  <cfargument name="debug" type="boolean" required="false" default="false" hint="Flag to indicate whether or not to dump the test results to the screen.">
-  <cfscript>
-   var result = this.run();
-   switch(arguments.output){
-    case 'html':
-      writeoutput(result.getHtmlresults());
-    break;
+		<cfset add(arguments.ComponentName,ArrayToList(a_methods),ComponentObject) />
 
-    case 'xml':
-      writeoutput(result.getXmlresults());
-    break;
+		<cfreturn this />
+	</cffunction>
 
-    case 'junitxml':
-    writeoutput(result.getJUnitXmlresults());
-    break;
+	<cffunction name="run" returntype="any" access="remote" output="true" hint="Primary method for running TestSuites and individual tests.">
+		<cfargument name="results" hint="The TestResult collecting parameter." required="no" type="TestResult" default="#createObject("component","TestResult").TestResult()#" />
+		<cfargument name="testMethod" hint="A single test method to run." type="string" required="no" default="">
 
-    case 'extjs':
-    writeoutput('<body>#result.getEXTresults("TestSuite Runner")#<div id="testresultsgrid" class="bodypad"></div></body>');
-    break;
+		<cfset var testRunner = createObject("component", "TestSuiteRunner") />
 
-    default:
-     writeoutput(result.getHtmlresults());
-    break;
-   }
+		<cfset testRunner.setMockingFramework(this.mockingFramework) />
+		<cfset testRunner.setDataProviderHandler(this.dataProviderHandler) />
 
-  </cfscript>
-  <cfif arguments.debug>
-	<p>&nbsp;</p>
-    <cfdump var="#result.getResults()#" label="Raw Results Dump">
-  </cfif>
+		<cfif variables.requestScopeDebuggingEnabled OR structKeyExists(url,"requestdebugenable")>
+			<cfset testRunner.enableRequestScopeDebugging() />
+		</cfif>
 
-</cffunction>
+		<cfreturn testRunner.run(this.suites(), results, testMethod)>
+	</cffunction>
 
+	<cffunction name="runTestRemote" access="remote" output="true">
+		<cfargument name="output" type="string" required="false" default="jqgrid" hint="Output format: html,xml,junitxml,jqgrid ">
+		<cfargument name="debug" type="boolean" required="false" default="false" hint="Flag to indicate whether or not to dump the test results to the screen.">
 
-<cffunction name="suites" access="public" returntype="struct">
- <cfreturn this.testSuites />
+		<cfscript>
+			var result = this.run();
 
-</cffunction>
+			switch(arguments.output){
+			case 'xml':
+					writeoutput(result.getXmlresults());
+				break;
 
-<cffunction name="stringValue" access="remote" returntype="string">
-  <cfreturn this.suites().toString() />
+			case 'junitxml':
+					writeoutput(result.getJUnitXmlresults());
+				break;
 
-</cffunction>
+			case 'json':
+					writeoutput(result.getJSONResults());
+				break;
 
-<cffunction name="dump">
- <cfargument name="o">
-  <cfdump var="#o#">
-</cffunction>
+			case 'query':
+					dump(result.getQueryresults());
+				break;
 
+			case 'text':
+					writeoutput( trim(result.getTextresults(name)));
+				break;
+
+			case 'rawhtml':
+					writeoutput(result.getRawHtmlresults());
+				break;
+
+			default:
+					writeoutput(result.getHtmlresults());
+				break;
+			}
+		</cfscript>
+
+		<cfif arguments.debug>
+			<p>&nbsp;</p>
+
+			<cfdump var="#result.getResults()#" label="Raw Results Dump">
+		</cfif>
+	</cffunction>
+
+	<cffunction name="suites" access="public" returntype="any">
+		
+		<cfreturn this.testSuites />
+	</cffunction>
+
+	<cffunction name="stringValue" access="remote" returntype="string">
+		<cfreturn this.suites().toString() />
+	</cffunction>
+
+	<cffunction name="dump">
+		<cfargument name="o">
+
+		<cfdump var="#o#">
+	</cffunction>
+
+	<cffunction name="enableRequestScopeDebugging" access="public" output="false" hint="enables creation of the request.debug function">
+		<cfset requestScopeDebuggingEnabled = true>
+	</cffunction>
+
+	<cffunction name="setMockingFramework" hint="Allows a developer to set the default Mocking Framework for this test suite.">
+		<cfargument name="name" type="Any" required="true" hint="The name of the mocking framework to use" />
+
+		<cfset this.MockingFramework = arguments.name />
+	</cffunction>
+
+	<cffunction name="getMap" returntype="Any" access="private" output="false" hint="I return an instance of a java sorted map" >
+			<cfreturn createObject("Java","java.util.LinkedHashMap") />
+	</cffunction>
+
+	<cffunction name="setTestSuites" access="public" returntype="void" output="false" hint="Method used to set test suites for testing" >
+		<cfargument name="testSuites" type="any" required="true" />
+		<cfif arguments.testSuites.getClass().getName() eq "java.util.LinkedHashMap" >
+			<cfset this.testSuites = arguments.testSuites />
+		</cfif>
+	</cffunction>
 </cfcomponent>
-
-
-
-
-
-
-

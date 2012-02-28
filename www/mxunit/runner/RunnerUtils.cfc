@@ -15,7 +15,7 @@
 <cffunction name="directoryList"  returnType="query">
 	<cfargument name="directory" type="string" required="true">
 	<cfargument name="filter" type="string" required="false" default="">
-	<cfargument name="sort" type="string" required="false" default="">
+	<cfargument name="sort" type="string" required="false" default="type">
 	<cfargument name="recurse" type="boolean" required="false" default="false">
 	<!--- temp vars --->
 	<cfargument name="dirInfo" type="query" required="false">
@@ -39,7 +39,7 @@
 		<cfif not isDefined("arguments.dirInfo")>
 			<cfset arguments.dirInfo = queryNew("attributes,datelastmodified,mode,name,size,type,directory")>
 		</cfif>
-		<cfset arguments.thisDir = directoryList(directory,arguments.filter,sort,false)>
+		<cfset arguments.thisDir = this.directoryList(directory,arguments.filter,sort,false)>
 		<cfif server.os.name contains "Windows">
 			<cfset path = "\">
 		<cfelse>
@@ -56,7 +56,7 @@
 				<cfset querySetCell(arguments.dirInfo,"directory",directory)>
 				<cfif type is "dir">
 					<!--- go deep! --->
-					<cfset directoryList(directory & path & name,arguments.filter,sort,true,arguments.dirInfo)>
+					<cfset this.directoryList(directory & path & name,arguments.filter,sort,true,arguments.dirInfo)>
 				</cfif>
 		</cfloop>
 		<cfreturn arguments.dirInfo>

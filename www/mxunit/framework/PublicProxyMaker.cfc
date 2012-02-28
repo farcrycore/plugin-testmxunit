@@ -2,14 +2,14 @@
 
 	<cfset cu = createObject("component","ComponentUtils")>
 	<cfset blender = createObject("component","ComponentBlender")>
-	
+
 	<cfset lineSep = cu.getLineSeparator()>
 	<cfset dirSep = cu.getSeparator()>
 
 
-	<cffunction name="makePublic" access="public" hint="creates a public method proxy for the indicated private method for the passed-in object" returntype="WEB-INF.cftags.component">
+	<cffunction name="makePublic" access="public" hint="creates a public method proxy for the indicated private method for the passed-in object" returntype="any">
 
-		<cfargument name="ObjectUnderTest" required="true" type="WEB-INF.cftags.component" hint="an instance of the object with a private method to be proxied">
+		<cfargument name="ObjectUnderTest" required="true" type="any" hint="an instance of the object with a private method to be proxied">
 		<cfargument name="privateMethodName" required="true" type="string" hint="name of the private method to be proxied">
 		<cfargument name="proxyMethodName" required="false" type="string" default="" hint="name of the proxy method name to be used; if not passed, defaults to the name of the private method prefixed with an underscore">
 
@@ -24,7 +24,7 @@
 		<cfset var s_args = "">
 		<cfset var componentReturnTag = "return">
 		<cfset var renamedExistingMethod = arguments.privateMethodName & "_mxunitproxy">
-		
+
 		<cfif StructIsEmpty(methodStruct)>
 			<cfthrow message="Attempting to make public proxy for private method: method named #privateMethodName# did not exist in object of type #md.name#">
 		</cfif>
@@ -39,41 +39,40 @@
 			<cfset componentReturnTag = "set">
 		</cfif>
 
-		<!--- for now, it seems safest to just do this every time, even if it's technically overkill --->
-		<cfif not DirectoryExists(dir)>
-			<cfdirectory action="create" directory="#dir#">
-		</cfif>
+		<cfset handleDirectoryCreate(dir)>
+
+		<!--- NOTE: see https://github.com/mxunit/mxunit/issues/12 --->
+		<!---<cfset s_argTags = constructArgumentsTags(methodStruct)>--->
 
 		<!--- generate a CFC that contains a public method. this method will call the private method we want to call --->
-		<cfset s_args = constructArgumentsTags(methodStruct)>
-		
 		<cfoutput>
 		<cfsavecontent variable="output">
-		<%cfcomponent% extends="#md.name#">
-		
+		<%cfcomponent extends="#md.name#"%>
+
 		<%cffunction name="#arguments.proxyMethodName#" access="public"%>
-			#s_args.tags#
-			<%cf#componentReturnTag# #renamedExistingMethod#(#s_args.args#)%>
+			<!---#s_argTags#--->
+			<%cf#componentReturnTag# #renamedExistingMethod#(argumentCollection=arguments)%>
 		<%/cffunction%>
 
 		<%/cfcomponent%>
 		</cfsavecontent>
 		</cfoutput>
 		<cfset cfcode = replace(output,"%","","all")>
-		<cffile action="write" file="#dir##file#" output="#cfcode#">
+		<cfset handleFileCreate(dir & file, cfcode)>
 
 		<!--- now, create an instance of that generated object --->
-		<cfset proxy = createObject("component","mxunit.framework.generated.#cfcnotation#")>
+		<cfset proxy = handleObjectCreate(cfcnotation)>
+
 		<!--- NOTE: all of this rejiggering is so that we can call the private method directly rather than having to call a differently-named proxy method! --->
-		 
+
 		<!--- move the current privateMethod into a newly named method --->
 		<cfset blender._mixinAll(arguments.ObjectUnderTest,blender)>
 		<cfset arguments.ObjectUnderTest._mixin(renamedExistingMethod,arguments.ObjectUnderTest._getComponentVariable(privateMethodName))>
 		<!--- inject that function's proxy method into the object passed in; now we can call this new method, which will call the private method --->
 		<cfset arguments.ObjectUnderTest._mixin(arguments.proxyMethodName,proxy[arguments.proxyMethodName])>
-		
+
 		<!--- cleanup; i doubt this will be enough so we'll need some way of periodically cleaning out that directory I suspect --->
-		<cffile action="delete" file="#dir##file#">  
+		<cfset handleFileDelete(dir & file)>
 		<cfreturn ObjectUnderTest>
 	</cffunction>
 
@@ -104,29 +103,49 @@
 
 	</cffunction>
 
-	<cffunction name="constructArgumentsTags" returntype="struct" access="private" hint="creates the cfargument tags, the method call to the private method, and the return statement for the component">
+	<cffunction name="constructArgumentsTags" returntype="string" access="private" hint="creates the cfargument tags, the method call to the private method, and the return statement for the component">
 		<cfargument name="privateMethodStruct" type="struct" hint="the structure of metadata for the private method under consideration">
-		<cfset var strArgs = "">
 		<cfset var strArgTags = "">
 		<cfset var thisParamString = "">
 		<cfset var thisTagString = "">
 		<cfset var a_params = privateMethodStruct.Parameters>
 		<cfset var p = 1>
 		<cfset var pCount = ArrayLen(a_params)>
-		<cfset var s_return = StructNew()>
 
 		<cfloop from="1" to="#pCount#" index="p">
-			<cfparam name="a_params[p].default" default="">
 			<cfparam name="a_params[p].required" default="false">
-			<cfset thisTagString = "<cfargument name='#a_params[p].name#' required='#a_params[p].required#' default='#a_params[p].default#'>">
+			<cfset thisTagString = "<cfargument name='#a_params[p].name#' required='#a_params[p].required#'">
+			<cfif structKeyExists(a_params[p], 'default')>
+				 <cfset thisTagString = thisTagString & " default='#a_params[p].default#'">
+			</cfif>
+			<cfset thisTagString = thisTagString & ">">
 			<cfset thisParamString = a_params[p].name & " = arguments.#a_params[p].name#">
 			<cfset strArgTags = ListAppend(strArgTags, thisTagString, lineSep)>
-			<cfset strArgs = ListAppend(strArgs, thisParamString)>
 		</cfloop>
-		<cfset s_return.tags = strArgTags>
-		<cfset s_return.args = strArgs>
-		<cfreturn s_return>
-		<!--- <cfreturn strArgTags & lineSep &  "<cfreturn #privateMethodStruct.name#(#strArgs#)>"> --->
+		<cfreturn strArgTags>
+	</cffunction>
+
+	<cffunction name="handleDirectoryCreate" output="false" access="public" returntype="any" hint="">
+		<cfargument name="dir" type="string" required="true"/>
+		<cfif not DirectoryExists(dir)>
+			<cfdirectory action="create" directory="#dir#">
+		</cfif>
+	</cffunction>
+
+	<cffunction name="handleFileCreate" output="false" access="public" returntype="any" hint="">
+		<cfargument name="fullFilePath" type="string" required="true"/>
+		<cfargument name="output" type="string" required="true"/>
+		<cffile action="write" file="#fullFilePath#" output="#output#">
+	</cffunction>
+
+	<cffunction name="handleFileDelete" output="false" access="public" returntype="any" hint="">
+		<cfargument name="fullFilePath" type="string" required="true"/>
+		<cffile action="delete" file="#fullFilePath#">
+	</cffunction>
+
+	<cffunction name="handleObjectCreate" output="false" access="public" returntype="any" hint="">
+		<cfargument name="cfcname" type="string" required="true"/>
+		<cfreturn createObject("component","mxunit.framework.generated.#cfcname#")>
 	</cffunction>
 
 </cfcomponent>

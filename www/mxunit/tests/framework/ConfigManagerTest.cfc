@@ -17,7 +17,6 @@
  Tests whether or not UseRemoteFacadeObjectCache element returns true.
  <cfscript>
   val = cm.getConfigElementValue("pluginControl","UseRemoteFacadeObjectCache");
-  debug('cm.getConfigElementValue("pluginControl","UseRemoteFacadeObjectCache"); = ' & val);
   assertTrue(val, "Value returned from xml config is not true, but should be");
  </cfscript>
 
@@ -27,7 +26,6 @@
  Tests that the version in the config file is 1.0.0 //Maybe should use version.properties instead
  <cfscript>
   val = cm.getConfigElementValue("meta","version");
-  debug('cm.getConfigElementValue("meta","version") = ' & val);
   assertEquals("1.0.0",val, "Value returned from xml config is not 0.9, but should be");
  </cfscript>
 
@@ -40,6 +38,14 @@
   var elements = cm.getConfigElements(assertionExtensionXpath);
   addtrace( arraylen(elements) );
   assertTrue(arraylen(elements), 1, "More than one element returned from config");
+ </cfscript>
+</cffunction>
+
+<cffunction name="testGetConfigElementAttributeCollection">
+ <cfscript>
+  val = cm.getConfigElementAttributeCollection("newFramework","constructorArgs");
+  assertEquals(1,StructCount(val));
+  assertEquals("constructorArg1",val.arg1);
  </cfscript>
 </cffunction>
 

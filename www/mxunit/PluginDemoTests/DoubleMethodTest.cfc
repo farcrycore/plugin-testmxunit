@@ -2,6 +2,7 @@
 	<cfset blah = "hi mom">
 	<cffunction name="setUp" output="false" access="public" returntype="void" hint="">
 
+
 	</cffunction>
 
 	<cffunction name="tearDown" output="false" access="public" returntype="void" hint="">
@@ -9,8 +10,12 @@
 	</cffunction>
 
 	<cffunction name="testOne"  access="public" returntype="void" hint="">
+		<cfset var scopes = getpagecontext().getCFScopes()>
+
+		<cfdump var="#scopes#">
 		<cfset assertTrue(true,"true")>
 	</cffunction>
+	
 	<cffunction name="testTwo"  returntype="void" hint="">
 		<cfset var q = QueryNew("one,two")>
 		<cfset debug("#StructNew()#")>

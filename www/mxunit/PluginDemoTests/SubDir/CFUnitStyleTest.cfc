@@ -1,6 +1,10 @@
 <cfcomponent extends="mxunit.framework.TestCase">
 	
-	<cfset setTestStyle("cfunit")>
+	<cffunction name="setUp">
+		<cfset setTestStyle("cfunit")>
+	
+	</cffunction>
+	
 	
 	<cffunction name="testAssertEquals">
 		<cfset assertEquals("my message goes here",1,1)>

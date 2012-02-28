@@ -8,7 +8,7 @@
   <property name="results.url" value="http://localhost:${runner.port}/mxunit/tests/testresults/html/index.html" />
   <property name="output.dir" value="tmp" />
   <property name="style.dir" value="../ant/xsl/" />
-   <property file="../buildprops/unames.properties" />
+  <property file="../buildprops/unames.properties" />
 
   <path id="project.classpath">
     <pathelement location="../lib/svnjavahl.jar" />
@@ -54,7 +54,7 @@
 
           <directory runner="/mxunit/runner/HttpAntRunner.cfc"
                      remoteMethod="run"
-                     path="${component.path}\mxunit\tests\framework"
+                     path="${component.path}/mxunit/tests/framework"
                      packageName="mxunit.tests.framework"
                      componentPath="mxunit.tests.framework"
                      recurse="false"
@@ -62,7 +62,7 @@
 
           <directory runner="/mxunit/runner/HttpAntRunner.cfc"
                      remoteMethod="run"
-                     path="${component.path}\mxunit\tests\runner"
+                     path="${component.path}/mxunit/tests/runner"
                      packageName="mxunit.tests.runner"
                      componentPath="mxunit.tests.runner"
                      recurse="false"
@@ -70,7 +70,7 @@
 
          <directory runner="/mxunit/runner/HttpAntRunner.cfc"
                     remoteMethod="run"
-                    path="${component.path}\mxunit\tests\bugs"
+                    path="${component.path}/mxunit/tests/bugs"
                     packageName="mxunit.tests.bugs"
                     componentPath="mxunit.tests.bugs"
                     recurse="false"
@@ -79,28 +79,27 @@
 
         <directory runner="/mxunit/runner/HttpAntRunner.cfc"
                    remoteMethod="run"
-                   path="${component.path}\mxunit\tests\install"
+                   path="${component.path}/mxunit/tests/install"
                    packageName="mxunit.tests.install"
                    componentPath="mxunit.tests.install"
                    recurse="false"
                    includes="*.cfc"
                    excludes="" />
 
-        <!-- Need to regenerate tests
-         <directory runner="/mxunit/runner/HttpAntRunner.cfc"
-                    remoteMethod="run"
-                    path="${component.path}\mxunit\tests\generator"
-                    packageName="mxunit.tests.generator"
-                  componentPath="mxunit.tests.generator"
-                    recurse="false"
-                    excludes="" />
-        -->
+       	<directory runner="/mxunit/runner/HttpAntRunner.cfc"
+                   remoteMethod="run"
+                   path="${component.path}/mxunit/tests/mightymock"
+                   packageName="mxunit.tests.mightymock"
+                   componentPath="mxunit.tests.imightymock"
+                   recurse="false"
+                   includes="*.cfc"
+                   excludes="" />
       </mxunittask>
 
   </target>
 
 
-
+ 
 
   <target name="junitreport" depends="runtests" description="Create a report for the rest result">
     <delete dir="${junit.out.dir.html}" />

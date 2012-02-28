@@ -1,16 +1,40 @@
 <!---
- @file Assert.cfc
- @description Main component for performing assertions.
+Assert.cfc
+
+Main component for performing assertions.
 
  --->
 <cfcomponent displayname="Assert"
-             hint="Main component for asserting state. You will not generally need to instantiate this component directly - the framework makes it available for your TestCases. Use this to see what assertions are available and note that it can easily be extended using the Assert.addDecortor() method or by editing the mxunit-config.xml file, following the examples therein.">
+             hint="Main component for asserting state. You will not instantiate this component directly - the framework makes it available for your TestCases. Use this to see what assertions are available and note that it can easily be extended using the Assert.addDecortor() method or by editing the mxunit-config.xml file, following the examples therein.">
 
-  <cfparam name="this.TestStyle" default="default">
+	<cfset variables.componentUtils = createObject("component", "ComponentUtils")>
+
+	<cfset variables.testStyle = "default">
+
+	<!--- A Note on these two class variables: We need a way to bus expected and actual values from equality assertions into the TestResult
+	for a given test function; This is 'the simplest way that works' and is safe because tests in a testcase are synchronous;
+	 if in the future we were to support asynchronous test function runs *within a test case*, this would break down--->
+	<cfset variables.expected = "">
+	<cfset variables.actual = "">
+
+	<cffunction name="getExpected">
+		<cfreturn expected>
+	</cffunction>
+
+	<cffunction name="getActual">
+		<cfreturn actual>
+	</cffunction>
+
+
+	<cffunction name="clearClassVariables" access="public">
+		<cfset variables.expected = "">
+		<cfset variables.actual = "">
+	</cffunction>
 
   <!--- Constructor;  named init instead of Assert because BlueDragon has a built-in
 assert function and thus mxunit won't run on BD unless we do this --->
   <cffunction name="init" access="remote" returntype="Assert" hint="Constructor">
+		
     <cfset addAssertDecorators() />
     <!---
     Leave this out for now ...
@@ -38,6 +62,7 @@ assert function and thus mxunit won't run on BD unless we do this --->
    <cfset var i= "">
 
    <cftry>
+   	
 
    <cfset decorator = createObject("component", arguments.decoratorName) />
 
@@ -104,34 +129,44 @@ assert function and thus mxunit won't run on BD unless we do this --->
   <!--- convenience (sort of...maybe) for enabling users of cfunit to convert their stuff without terrible pain. a test case would need to use setTestStyle('cfunit') in the constructor or setUp method of a test --->
   <cffunction name="setTestStyle" access="public" hint="Sets the current test style.">
     <cfargument name="TestStyle" type="string" required="true" hint="Use 'default' to have the framework behave like cfcunit with respect to arguments; otherwise, pass 'cfunit' to behave like cfunit (i.e. for certain assertions, the message is the first arg). This only affects assertEquals and assertTrue">
-    <cfset this.TestStyle = arguments.TestStyle>
+    <cfset variables.TestStyle = arguments.TestStyle>
   </cffunction>
 
   <cffunction name="getTestStyle" access="public" output="false" hint="returns the current test style">
-    <cfreturn this.TestStyle>
+    <cfreturn variables.TestStyle>
   </cffunction>
 
   <cffunction name="fail" access="public" returntype="void" static="true" hint="Fails a test with the given MESSAGE.">
    <cfargument name="message" required="true" type="string" hint="Custom message to print in the failure."  />
-   <cfset var mess = (iif(arguments.message is '', de("mxunit test failure"),de(arguments.message))) />
+   <cfset var mess = "">
+	 <cfif arguments.message is ''>
+			<cfset mess = "mxunit test failure">
+	 <cfelse>
+		  <cfset mess = arguments.message />
+	 </cfif>
    <cfthrow type="mxunit.exception.AssertionFailedError" message="#mess#" />
   </cffunction>
 
 	<cffunction name="failEquals" access="private" returntype="void" static="true" hint="Fails the test and prints the expected and actual values to the failure message">
      <cfargument name="expected" type="any" required="yes" hint="The expected string value"  />
-	 <cfargument name="actual"   type="any" required="yes" hint="The actual string value" />
-	 <cfargument name="message" required="false" default="This test failed" hint="Custom message to print in the failure." />
-	     <cfset arguments = normalizeArguments("equals",arguments)>
-	     <cfthrow type="mxunit.exception.AssertionFailedError" message="#arguments.message#::[#getStringValue(arguments.expected)#] EQUAL TO [#getStringValue(arguments.actual)#]" />
+	   <cfargument name="actual"   type="any" required="yes" hint="The actual string value" />
+	   <cfargument name="message" required="false" default="This test failed" hint="Custom message to print in the failure." />
+	   <!---<cfset arguments = normalizeArguments("equals",arguments)>   --->
+	    <cfthrow type="mxunit.exception.AssertionFailedError" message="#arguments.message#:: Expected [#getStringValue(arguments.expected)#] BUT RECEIVED [#getStringValue(arguments.actual)#]. These values should not be the same. " />
    </cffunction>
 
   <cffunction name="failNotEquals" access="private" returntype="void" static="true" hint="Fails the test and prints the expected and actual values to the failure message">
     <cfargument name="expected" type="any" required="yes" hint="The expected string value"  />
     <cfargument name="actual"   type="any" required="yes" hint="The actual string value" />
     <cfargument name="message" required="false" default="This test failed" hint="Custom message to print in the failure." />
-    <cfset arguments = normalizeArguments("equals",arguments)>
-    <cfthrow type="mxunit.exception.AssertionFailedError" message="#arguments.message#::[#getStringValue(arguments.expected)#] NOT EQUAL TO [#getStringValue(arguments.actual)#]" />
-  </cffunction>
+    <cfargument name="caseSensitive" required="false" default="false" hint="Whether or not to print values in original case." />
+    <!---<cfset arguments = normalizeArguments("equals",arguments)>  --->
+		<cfif isSimpleValue(expected) AND isSimpleValue(actual)>
+			<cfset variables.expected = arguments.expected>
+			<cfset variables.actual = arguments.actual>
+		</cfif>
+	    <cfthrow type="mxunit.exception.AssertionFailedError" message="#arguments.message#:: Expected [#getStringValue(arguments.expected,arguments.caseSensitive)#] BUT RECEIVED [#getStringValue(arguments.actual,arguments.caseSensitive)#]. These values should be the same. " />
+	  </cffunction>
 
  <cffunction name="getStringValue" returntype="string" access="public" hint="Attempts to return string representation of OBJ. Tests to see if object has toString or stringValue methods to be used for comparison and returns that string if present">
   <cfargument name="obj" type="any" required="yes" hint="Any object" />
@@ -196,6 +231,72 @@ assert function and thus mxunit won't run on BD unless we do this --->
 	  <cfset expectedStringValue = getStringValue(arguments.expected) />
 	  <cfset actualStringValue = getStringValue(arguments.actual) />
     <cfscript>
+
+		if( isStruct( expected ) AND isStruct( actual ) ){
+			assertStructEquals( expected, actual, message );
+			return;
+		}
+
+		if( isQuery( expected ) AND isQuery( actual ) ){
+			assertQueryEquals( expected, actual, message );
+			return;
+		}
+
+		if( isArray(expected) AND isArray( actual ) ){
+			assertArrayEquals( expected, actual, message );
+			return;
+		}
+
+		if (isNumeric(arguments.expected) AND isnumeric(arguments.actual) AND arguments.expected eq arguments.actual){
+			return;
+		}
+		if (expectedStringValue is "" AND actualStringValue is ""){
+			return;
+		}
+		if (expectedStringValue is not "" AND expectedStringValue.equals(actualStringValue)){
+			return;
+		}
+		failNotEquals(expectedStringValue, actualStringValue, arguments.message);
+    </cfscript>
+  </cffunction>
+
+
+<cffunction name="assertNotEquals" access="public" returntype="void" hint="Core assertion that compares the values the EXPECTED and ACTUAL parameters. Throws mxunit.exception.AssertionFailedError.">
+    <cfargument name="expected" type="any" required="yes" hint="The expected object to compare."  />
+    <cfargument name="actual"   type="any" required="yes" hint="The actual object to compare."  />
+	  <cfargument name="message"  type="string" required="no" default="" hint="Optional custom message to display if comparison fails." />
+
+	   <cfset var expectedStringValue = "">
+	   <cfset var actualStringValue = "">
+	   <cfset arguments = normalizeArguments("equals",arguments)>
+	   <cfset expectedStringValue = getStringValue(arguments.expected) />
+	   <cfset actualStringValue = getStringValue(arguments.actual) />
+	   <cfscript>
+		   if (isNumeric(arguments.expected) AND isnumeric(arguments.actual) AND arguments.expected eq arguments.actual){
+		     failEquals(expectedStringValue, actualStringValue, arguments.message);
+		   }
+		   if (expectedStringValue is "" AND actualStringValue is ""){
+		     failEquals(expectedStringValue, actualStringValue, arguments.message);
+		     }
+		   if (expectedStringValue is not "" AND expectedStringValue.equals(actualStringValue)){
+		     failEquals(expectedStringValue, actualStringValue,arguments.message);
+		   }
+		   return;
+	 </cfscript>
+   </cffunction>
+
+
+  <cffunction name="assertEqualsCase" access="public" returntype="void" hint="Core assertion that compares the values the EXPECTED and ACTUAL parameters. Throws mxunit.exception.AssertionFailedError. This is case sensitive.">
+    <cfargument name="expected" type="any" required="yes" hint="The expected object to compare."  />
+    <cfargument name="actual"   type="any" required="yes" hint="The actual object to compare."  />
+	  <cfargument name="message"  type="string" required="no" default="" hint="Optional custom message to display if comparison fails." />
+
+	  <cfset var expectedStringValue = "">
+	  <cfset var actualStringValue = "">
+	  <cfset arguments = normalizeArguments("equals",arguments)>
+	  <cfset expectedStringValue = getStringValue(arguments.expected, true) />
+	  <cfset actualStringValue = getStringValue(arguments.actual, true) />
+    <cfscript>
 		  if (isNumeric(arguments.expected) AND isnumeric(arguments.actual) AND arguments.expected eq arguments.actual){
 		    return;
 		  }
@@ -205,45 +306,51 @@ assert function and thus mxunit won't run on BD unless we do this --->
 		  if (expectedStringValue is not "" AND expectedStringValue.equals(actualStringValue)){
 		    return;
 		  }
-		  failNotEquals(expectedStringValue, actualStringValue, arguments.message);
+		  failNotEquals(expectedStringValue, actualStringValue, arguments.message, true); //last arg is caseSensitive flag
     </cfscript>
   </cffunction>
 
-<cffunction name="assertNotEquals" access="public" returntype="void"
-			hint="Core assertion that compares the values the EXPECTED and ACTUAL
-parameters. Throws mxunit.exception.AssertionFailedError.">
-    <cfargument name="expected" type="any" required="yes" hint="The
-expected object to compare."  />
-    <cfargument name="actual"   type="any" required="yes" hint="The
-actual object to compare."  />
-          <cfargument name="message"  type="string" required="no" default=""
-hint="Optional custom message to display if comparison fails." />
+  	<cffunction name="assertQueryEquals" access="public" output="false" returntype="void" description="compares 2 queries, cell by cell, and fails if differences exist">
+    	<cfargument name="expected" type="query" required="true"/>
+    	<cfargument name="actual" type="query" required="true"/>
+		<cfargument name="message" type="string" required="false" default=""/>
 
-           <cfset var expectedStringValue = "">
-           <cfset var actualStringValue = "">
-           <cfset arguments = normalizeArguments("equals",arguments)>
-           <cfset expectedStringValue = getStringValue(arguments.expected) />
-           <cfset actualStringValue = getStringValue(arguments.actual) />
-     <cfscript>
-                   if (isNumeric(arguments.expected) AND isnumeric(arguments.actual)
- AND arguments.expected eq arguments.actual){
-                     failEquals(expectedStringValue,
- actualStringValue, arguments.message);
-                   }
-                     if (expectedStringValue is "" AND actualStringValue is ""){
-                     failEquals(expectedStringValue,
- actualStringValue, arguments.message);
-                     }
-                   if (expectedStringValue is not "" AND
- expectedStringValue.equals(actualStringValue)){
-                     failEquals(expectedStringValue,
- actualStringValue,arguments.message);
-                   }
-                   return;
-     </cfscript>
-   </cffunction>
+		<cfset var compareResult = "">
+		<cfinvoke component="DataCompare" method="compareQueries" query1="#expected#" query2="#actual#" returnvariable="compareResult">
 
-  
+		<cfif not compareResult.success>
+			<cfset debug(compareResult)>
+			<cfset assertEquals( compareResult.Query1MismatchValues, compareResult.Query2MismatchValues, "Expected queries to match but they did not. See debug output for a visual display of the differences. #compareResult.Message#. #arguments.message#" )>
+		</cfif>
+    </cffunction>
+
+    <cffunction name="assertStructEquals" output="false" access="public" returntype="any" hint="compares two structures, key by key, and fails if differences exist">
+    	<cfargument name="expected" type="struct" required="true"/>
+    	<cfargument name="actual" type="struct" required="true"/>
+		<cfargument name="message" type="string" required="false" default=""/>
+
+		<cfset var compareResult = "">
+		<cfinvoke component="DataCompare" method="compareStructs" struct1="#expected#" struct2="#actual#" returnvariable="compareResult">
+
+		<cfif not compareResult.success>
+			<cfset debug(compareResult)>
+			<cfset assertEquals( compareResult.Struct1MismatchValues, compareResult.Struct2MismatchValues, "Expected Structures to match but did not. See debug output for a visual display of the differences. #compareResult.message# #arguments.message#")>
+		</cfif>
+    </cffunction>
+
+    <cffunction name="assertArrayEquals" output="false" access="public" returntype="any" hint="compares two arrays, element by element, and fails if differences exist">
+    	<cfargument name="expected" type="array" required="true"/>
+    	<cfargument name="actual" type="array" required="true"/>
+		<cfargument name="message" type="string" required="false" default=""/>
+
+		<cfset var compareResult = "">
+		<cfinvoke component="DataCompare" method="compareArrays" array1="#expected#" array2="#actual#" returnvariable="compareResult">
+		<cfif not compareResult.success>
+			<cfset debug(compareResult)>
+			<cfset assertEquals( compareResult.array1MismatchValues, compareResult.array2MismatchValues, "Expected arrays to match but did not. See debug output for a visual display of the differences. #compareResult.message#. #arguments.message#")>
+		</cfif>
+    </cffunction>
+
   <cffunction name="assertTrue" access="public" returntype="boolean" hint="Core assertion that tests the CONDITION and throws mxunit.exception.AssertionFailedError on failure">
   	<cfargument name="condition" required="yes" type="string" hint="The condition to test. Note that expressions containing CFCs may likely fail">
     <cfargument name="message" required="no" default="" type="string"  hint="Optional custom message to display if comparison fails.">
@@ -264,18 +371,16 @@ hint="Optional custom message to display if comparison fails." />
 
 
 	<cffunction name="assertFalse" access="public">
-		 <cfargument name="condition" required="yes" type="string">
-   	 <cfargument name="message" required="no" default="" type="string">
-	 	 <cfset arguments = normalizeArguments("true",arguments)>
-
-	 	<cfif arguments.condition>
-			<cfset fail(arguments.message)>
-		</cfif>
-
+	  <cfargument name="condition" required="yes" type="string">
+	  <cfargument name="message" required="no" default="" type="string">
+ 	  <cfset arguments = normalizeArguments("true",arguments)>
+	  <cfif arguments.condition>
+	    <cfset fail(arguments.message)>
+	  </cfif>
 	</cffunction>
 
 
-  <cffunction name="assertSame" access="public" output="true">
+  <cffunction name="assertSame" access="public" output="false">
     <cfargument name="expected" required="yes" type="any" />
     <cfargument name="actual" required="yes" type="any" />
     <cfargument name="message" required="no" default="The two objects do not refer to the same instance." type="string">
@@ -291,8 +396,8 @@ hint="Optional custom message to display if comparison fails." />
       if(expect eq act){
         return;
       }
-	    fail(arguments.message);
-	   </cfscript>
+	 fail(arguments.message);
+	 </cfscript>
 
   </cffunction>
 
@@ -313,10 +418,19 @@ hint="Optional custom message to display if comparison fails." />
       if(not expect eq act){
         return;
       }
-	    fail(arguments.message);
-	   </cfscript>
+     fail(arguments.message);
+    </cfscript>
   </cffunction>
 
+ <!---
+  Returned THIS for method chaining. Not sure if that will provide any value ...
+  --->
+  <cffunction name="assert" access="public" hint="Basic assertion. Same effect as assertTrue()">
+    <cfargument name="condition" required="yes" type="string" hint="The condition to test. Note that expressions containing CFCs may likely fail">
+    <cfargument name="message" required="no" default="" type="string"  hint="Optional custom message to display if comparison fails.">
+    <cfset assertTrue(condition,message) />
+    <cfreturn this />
+  </cffunction>
 
   <cffunction name="throwWrapper" returntype="void">
     <cfargument name="type" type="string" required="true" />
@@ -330,11 +444,11 @@ hint="Optional custom message to display if comparison fails." />
     <cfargument name="AssertType" required="true" type="string">
     <cfargument name="Args" required="true" type="struct">
     <cfset var s_args = StructNew()>
-    
-    <cfif this.TestStyle eq "default">
+
+    <cfif variables.TestStyle eq "default">
       <cfreturn args>
     </cfif>
-    
+
     <cfswitch expression="#Arguments.AssertType#">
       <cfcase value="equals">
         <!--- this is the diciest one of them and we'll get it wrong if they use named args! --->

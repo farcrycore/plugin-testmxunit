@@ -160,7 +160,7 @@ To Do: Add debug data [12.16.07::bill]
 
 
 <cffunction name="getXslt" access="public" hint="Basic XSL for outputting html" returntype="string">
- <cfset var querystring = normalizeQueryString(URL,"extjs")>
+ <cfset var querystring = normalizeQueryString(URL,"jq")>
  <cfset var xsl= "">
  <cfset querystring = XMLFormat(queryString)>
 <cfset  xsl =
@@ -248,7 +248,7 @@ To Do: Add debug data [12.16.07::bill]
   </head>
   <body style="font-family: arial, helvetica, sans-serif;">
 	<div id="modelink">
-		(<a href="?#queryString#">view in extjs mode</a>)
+		(<a href="?#queryString#">view pretty html</a>)
 	</div>
    <H2 align="center">Test Results</H2>
    <xsl:call-template name="summary" />
@@ -274,7 +274,10 @@ To Do: Add debug data [12.16.07::bill]
       <th>Trace</th>
       <th>Generated</th>
     </tr>
-    <xsl:apply-templates />
+    <xsl:apply-templates select="test_case">
+      <xsl:sort select="@component" />
+ 	  <xsl:sort select="@testname" />
+ 	</xsl:apply-templates>
   </tbody>
 </table>
 </div>
@@ -290,11 +293,14 @@ To Do: Add debug data [12.16.07::bill]
    <xsl:otherwise>white</xsl:otherwise>
   </xsl:choose>
  </xsl:variable>
+ <xsl:variable name="linkroot">#getContextRoot()#/<xsl:value-of select="translate(@component, ''.'', ''/'')"/>.cfc?method=runtestremote&amp;output=html</xsl:variable>
+
  <tr bgcolor="{$bgcolor}" valign="top">
   <xsl:variable name="rowid" select="@number" />
   <td><xsl:value-of select="@number" />.</td>
   <td><xsl:value-of select="date" /></td>
-  <td align="left" nowrap="true"><xsl:value-of select="@component" />.<xsl:value-of select="@testname" />()</td>
+  <td align="left" nowrap="true">
+      <a href="{$linkroot}" title="View TestCase results: {@component}"><xsl:value-of select="@component" /></a>.<a href="{$linkroot}&amp;testmethod={@testname}" title="View individual test result for: {@testname}()"><xsl:value-of select="@testname" /></a>()</td>
   <td>
   <xsl:variable name="failed" select="results/message" />
   <xsl:choose>

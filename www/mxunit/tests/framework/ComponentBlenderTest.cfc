@@ -1,6 +1,5 @@
 <cfcomponent extends="mxunit.framework.TestCase">
 
-
 	<cffunction name="setUp" returntype="void" access="public" hint="put things here that you want to run before each test">
 		<cfset variables.blender = createObject("component","mxunit.framework.ComponentBlender")>
 		<cfset variables.mycfc = createObject("component","mxunit.tests.framework.fixture.NewCFComponent")>
@@ -14,20 +13,12 @@
 		<cfreturn "foo">
 	</cffunction>
 
-	<cffunction name="testCauseAFailure" returntype="void" hint="tests error path">
+	<cffunction name="testCauseAFailure" returntype="void" hint="tests error path" mxunit:expectedException="Application">
 		<cfset var actual = "" />
-		<cftry>
-			<!--- do something here to cause an error --->
+			<!--- no such function exists --->
 			<cfset actual = blender.foo()>
-			<cfset fail("Error path test... should not have gotten here")>
-		<cfcatch type="mxunit.exception.AssertionFailedError">
-			<cfrethrow>
-		</cfcatch>
-		<cfcatch type="any"></cfcatch>
-		</cftry>
 	</cffunction>
-
-
+	
 	<cffunction name="testMixin" returntype="void" access="public">
 		<cfset var actual = "" />
 		 <cfset blender._mixin("foo",foo)>
@@ -38,9 +29,6 @@
 	<cffunction name="testMixinPrivate" returntype="void" access="public">
 		<cfset var actual = "" />
 		 <cfset blender._mixinAll(blender,mycfc)>
-
-		 <cfset debug( getMetadata(mycfc) )>
-
 		 <cfset actual = blender.doSomethingPrivate()>
 		<cfset assertEquals("poo",actual,"")>
 	</cffunction>
@@ -87,19 +75,12 @@
 		<cfset assertTrue(result,"")>
 	</cffunction>
 	
-	<cffunction name="testMixinPropertyDefaultScopes">
-		
-		<cftry>			
+	<cffunction name="testMixinPropertyDefaultScopes" mxunit:expectedException="expression">
 		<!--- this should not work b/c internalVar is private --->
 		<cfset tmp = mycfc.internalVar>
-		<cfset fail("Error path test... should not have gotten here")>
-		<cfcatch type="mxunit.exception.AssertionFailedError">
-			<cfrethrow>
-		</cfcatch>
-		<cfcatch type="any"></cfcatch>
-		</cftry>
-		
-		<!--- now, mix in the property and assure it's properly overwritten' --->
+	</cffunction>
+	
+	<cffunction name="mixedInPropertyIsOverwritten">
 		<cfset blender._mixinAll(mycfc,blender)>
 		<cfset mycfc._mixinProperty(propertyName="internalVar",property="goo")>
 		<cfset assertEquals("goo",mycfc.internalVar)>
@@ -109,6 +90,16 @@
 		<cfset blender._mixinAll(mycfc,blender)>
 		<cfset mycfc._mixinProperty(propertyName="internalVar",property="goo",scope="instance")>
 		<cfset assertEquals("goo",mycfc.getInstance().internalVar)>
+	</cffunction>
+	
+	<cffunction name="testGetComponentVariables">
+		<cfset blender._mixinAll(mycfc,blender,"_getComponentVariables")>
+		<cfset vars = mycfc._getComponentVariables()>
+		
+		<cfset assertTrue(StructKeyExists(vars,"internalvar"),"internalvar should exist")>
+		<cfset assertTrue(StructKeyExists(vars,"internalvar2"),"internalvar2 should exist")>
+		<cfset assertTrue(StructKeyExists(vars,"instance"),"instance should exist")>
+		<cfset assertTrue(isStruct(vars.instance),"the instance variable should be a structure")>
 	</cffunction>
 
 </cfcomponent>

@@ -20,7 +20,7 @@
      var baos = javacast("null","java.lang.Object");
 
 	   paths[1] = expandPath("#root#/framework/lib/tagsoup-1.2.jar");
-	   paths[2] = expandPath("#root#/framework/lib/xom-1.1.jar");
+	   paths[2] = expandPath("#root#/framework/lib/xom-1.2.6.jar");
 	   loader = createObject("component", "/#root#/framework/javaloader/JavaLoader").init(paths);
 	   soup = loader.create("org.ccil.cowan.tagsoup.Parser").init();
 	   soup.setFeature("http://xml.org/sax/features/namespace-prefixes", false);
@@ -38,16 +38,13 @@
 	   //can also use inputstream ...?
 	  // doc = builder.build("http://mxunit.org");
 	   doc = builder.build(bais);
-	   debug("Maybe we can skip the cf dom parser altogether ....");
+	   // Maybe we can skip the cf dom parser altogether ....
 	   xpath = "/html/body/h1";
 	   //Hmmm.... not finding anything ...
 	   elements = doc.query(xpath);
-	   debug(elements);
-	   debug(doc.toXml());
 	   dom = xmlParse(doc.toXml());
 	   //debug(dom);
 	    el = xmlsearch(dom,"/html/body/h1");
-	    debug(el);
 </cfscript>
 <!--- <cfdump var="#doc#"> --->
 </cffunction>

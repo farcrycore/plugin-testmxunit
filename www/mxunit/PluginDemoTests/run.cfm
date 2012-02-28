@@ -1,3 +1,8 @@
+<html>
+
+<head></head>
+<body>
+
 <cfsetting showdebugoutput="true">
 <cfsetting requesttimeout="300">
 <cfparam name="url.output" default="extjs">
@@ -24,3 +29,6 @@
 <!--- 
 <cfdump var="#results.getResults()#">
 <cfdump var="#results.getDebug()#"> --->
+
+</body>
+</html>

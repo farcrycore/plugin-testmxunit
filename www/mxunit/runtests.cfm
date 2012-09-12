@@ -328,14 +328,14 @@
 								for (var i=0;i<tests.length;i++)
 									tests[i].result = 0;
 								
-								$("div.testresult").removeClass("Error").removeClass("Passed").removeClass("Failed").removeClass("Unrunnable").addClass("Waiting")
+								$j("div.testresult").removeClass("Error").removeClass("Passed").removeClass("Failed").removeClass("Unrunnable").addClass("Waiting")
 									.find("div.testtime").html("&nbsp;").end()
 									.find("div.moredetail").html("Queued").end()
 									.find("div.detail").html("").hide().end();
 								
 								$j("##action-play-pause").removeClass("ui-state-disabled").addClass('ui-state-default');
 								
-								$("##suitecompleted").replaceWith('<div id="suiteprogressbar"><div id="progress" class="progresstext"></div></div>');
+								$j("##suitecompleted").replaceWith('<div id="suiteprogressbar"><div id="progress" class="progresstext"></div></div>');
 							};
 							
 						$j(function(){
@@ -344,9 +344,9 @@
 								if (bRunning) pauseTests();	else playTests();
 								return false;
 							}).hover(function(){
-								$(this).removeClass("ui-state-default").addClass("ui-state-hover");
+								$j(this).removeClass("ui-state-default").addClass("ui-state-hover");
 							},function(){
-								$(this).removeClass("ui-state-hover").addClass("ui-state-default");
+								$j(this).removeClass("ui-state-hover").addClass("ui-state-default");
 							});
 							
 							$j.fn.log = function() { console.log(this); return this; };
@@ -356,9 +356,9 @@
 								resetTests();
 								return false;
 							}).hover(function(){
-								$(this).removeClass("ui-state-default").addClass("ui-state-hover");
+								$j(this).removeClass("ui-state-default").addClass("ui-state-hover");
 							},function(){
-								$(this).removeClass("ui-state-hover").addClass("ui-state-default");
+								$j(this).removeClass("ui-state-hover").addClass("ui-state-default");
 							});
 							
 						});

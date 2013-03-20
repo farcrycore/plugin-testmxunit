@@ -67,15 +67,15 @@
 				<div class="testresult #qResults.teststatus#">
 					<div class="componentname">
 						<cfif url.remote>
-							<a title="Test on server" class="ui-icon ui-icon-circlesmall-close" style="float:left;"></a>
-						<cfelse>
 							<a title="External test" class="ui-icon ui-icon-extlink" style="float:left;"></a>
+						<cfelse>
+							<a title="Test on server" class="ui-icon ui-icon-circlesmall-close" style="float:left;"></a>
 						</cfif>
 						<a title="#qTests.componenthint#">#qTests.componentname#</a>
 					</div>
 					<div class="testname"><a title="#qTests.testhint#">#qTests.testname#</a></div>
 					<div class="testtime"><cfif qResults.time lt 500>#qResults.time#ms<cfelseif qResults.time lt 61000>#numberformat(qResults.time/1000,"0.9")#s<cfelse>#round(qResults.time/60000)#:#round((qResults.time-60000)/1000)#min</cfif></div>
-					<div class="moredetail"><cfif listcontainsnocase("Failed,Error",qResults.teststatus)><a href="##" onclick="$j('###qTests.id#_#qTests.testmethod# .detail').toggle();return false;"></cfif>#qResults.teststatus#<cfif listcontainsnocase("Failed,Error",qResults.teststatus)> (more detail)</a></cfif></div>
+					<div class="moredetail"><cfif listcontainsnocase("Failed,Error",qResults.teststatus)><a href="##" onclick="$j('###qTests.id#_#qTests.testmethod# .detail').toggle();return false;"></cfif>#qResults.teststatus#<cfif listcontainsnocase("Failed,Error",qResults.teststatus)> (more detail)</a></cfif> <a href="##" onclick="rerunTest('#qTests.id#','#qTests.testmethod#'); return false;" style="float:right;" title="Rerun test"><span class="ui-icon ui-icon-refresh">&nbsp;</span></a></div>
 					<br class="clearer" />
 					<div class="detail" id="result#qResults.currentrow#">#qResults.error#<cfdump var="#qResults.debug#"></div>
 				</div>
@@ -115,7 +115,9 @@
 							.component { margin-bottom: 15px; }
 							
 							.testresult { margin:5px; padding:5px; font-family:helvetica,arial; color:##FFFFFF; }
-								.testresult.Waiting { background-console.log("<a href='##' onclick='$j(\"##"+test[index].id+"_"+test[index].testmethod+" .detail\").toggle();return false;'>Dependency failure</a>");color:##666666; }
+								.testresult a { color:##FFFFFF; }
+								
+								.testresult.Waiting { background-color:##666666; }
 								.testresult.Passed { background-color:##00BF0D; }
 								.testresult.Failed { background-color:##CC2504; }
 								.testresult.Error { background-color:##0000A0; }
@@ -149,7 +151,7 @@
 						<table width="100%">
 							<tr>
 								<td width="20px">
-									<a href="#application.url.webroot#/mxunit/runtests.cfm?testset=#urlencodedformat(stMXTest.title)#&host=#url.host#" class="ui-state-default ui-icon ui-icon-link">Link</a>
+									<a href="#application.url.webroot#/mxunit/runtests.cfm?testset=#urlencodedformat(stMXTest.title)#&host=#url.host#" class="ui-state-default" style="float:left;"><span class="ui-icon ui-icon-link">&nbsp;</span></a>
 								</td>
 								<cfif isdefined("application.config.testing.mode") and application.config.testing.mode eq "app" and listlen(stMXTest.urls,"#chr(10)##(chr(13))#")>
 									<td width="200px">
@@ -173,9 +175,9 @@
 									</cfif>
 								</td>
 								<td width="45px">
-									<a href="##" id="action-restart" class="ui-state-default ui-icon ui-icon-seek-first" style="float:left;">&nbsp;</a>
+									<a href="##" id="action-restart" class="ui-state-default" style="float:left;"><span class="ui-icon ui-icon-seek-first">&nbsp;</span></a>
 									<span style="float:left;">&nbsp;</span>
-									<a href="##" id="action-play-pause" class="ui-state-default ui-icon ui-icon-play" style="float:left;">&nbsp;</a>
+									<a href="##" id="action-play-pause" class="ui-state-default" style="float:left;"><span class="ui-icon ui-icon-play">&nbsp;</span></a>
 								</td>
 								<td>
 									<div id="suiteprogressbar">
@@ -211,6 +213,8 @@
 							var results = { error:0, passed:0, failed:0, dependencyfailures:0 };
 							var bRunning = 0;
 							var baseurl = "";
+							var timer = 0;
+							var teststart = 0;
 							
 							function isTestReady(index,killwaiting){
 								if (tests[index].result!==0) return 0; // don't run a test twice
@@ -223,9 +227,9 @@
 										if (tests[j].remote==tests[index].remote && tests[j].componentpath==tests[index].componentpath && tests[j].testmethod==dependencies[i]){
 											if (tests[j].result==0) { // dependency hasn't been run: not ready
 												if (killwaiting) {
-													tests[index].result = -3;
+													tests[index].result = -3;""
 													$j("##"+tests[index].id+"_"+tests[index].testmethod+" .testresult").removeClass("Waiting").addClass("Unrunnable");
-													$j("##"+tests[index].id+"_"+tests[index].testmethod+" .moredetail").html("<a href='##' onclick='$j(\"##"+tests[index].id+"_"+tests[index].testmethod+" .detail\").toggle();return false;'>Dependency failure</a>");
+													$j("##"+tests[index].id+"_"+tests[index].testmethod+" .moredetail").html("<a href='##' onclick='$j(\"##"+tests[index].id+"_"+tests[index].testmethod+" .detail\").toggle();return false;'>Dependency failure</a> <a href='##' onclick='rerunTest(\""+tests[index].id+"\",\""+tests[index].testmethod+"\"); return false;' style='float:right;' title='Rerun test'><span class='ui-icon ui-icon-refresh'>&nbsp;</span></a>");
 													$j("##"+tests[index].id+"_"+tests[index].testmethod+" .detail").html("Circular dependencies");
 													results.dependencyfailures++;
 												}
@@ -234,7 +238,7 @@
 											if (tests[j].result<0) { // dependency failed: update this test and return not ready
 												tests[index].result = -3;
 												$j("##"+tests[index].id+"_"+tests[index].testmethod+" .testresult").removeClass("Waiting").addClass("Unrunnable");
-												$j("##"+tests[index].id+"_"+tests[index].testmethod+" .moredetail").html("<a href='##' onclick='$j(\"##"+tests[index].id+"_"+tests[index].testmethod+" .detail\").toggle();return false;'>Dependency failure</a>");
+												$j("##"+tests[index].id+"_"+tests[index].testmethod+" .moredetail").html("<a href='##' onclick='$j(\"##"+tests[index].id+"_"+tests[index].testmethod+" .detail\").toggle();return false;'>Dependency failure</a> <a href='##' onclick='rerunTest(\""+tests[index].id+"\",\""+tests[index].testmethod+"\"); return false;' style='float:right;' title='Rerun test'><span class='ui-icon ui-icon-refresh'>&nbsp;</span></a>");
 												$j("##"+tests[index].id+"_"+tests[index].testmethod+" .detail").html("This test depends on ["+tests[j].testname+"], which failed.");
 												results.dependencyfailures++;
 												return -2;
@@ -255,6 +259,33 @@
 								return 1; // can only get here after finding, and finding successfull, all of the dependencies
 							};
 							
+							function rerunTest(id,testmethod){
+								for (var i=0; i<tests.length; i++){
+									if (tests[i].id === id && tests[i].testmethod === testmethod){
+										if (tests[i].result === -2)
+											results.error--;
+										else if (tests[i].result === 1)
+											results.passed--;
+										else
+											results.failed--;
+										
+										$j("##"+id+"_"+testmethod+" .testresult").removeClass("Error").removeClass("Passed").removeClass("Failed").removeClass("Unrunnable").addClass("Waiting")
+											.find("div.testtime").html("&nbsp;").end()
+											.find("div.moredetail").html("Queued").end()
+											.find("div.detail").html("").hide().end();
+										
+										tests[i].result = 0;
+									}
+								}
+								
+								per = (results.error+results.passed+results.failed+results.dependencyfailures)/#qTests.recordcount#*100;
+								$j("##suitecompleted").replaceWith('<div id="suiteprogressbar"><div id="progress" class="progresstext"></div></div>');
+								$j("##progress").animate({ width:per.toString()+"%" },100,"linear");
+								
+								if (!bRunning)
+									playTests();
+							};
+							
 							function getNextTest() {
 								for (var d=0;d<5;d++) { // handle recursive dependecies
 									for (var i=0;i<tests.length;i++){
@@ -268,6 +299,9 @@
 							function displayTestResult(result) {
 								$j("##"+tests[testindex].id+"_"+tests[testindex].testmethod).html(result);
 								
+								if (timer)
+									clearInterval(timer);
+								
 								if (result.match("testresult Error")) {
 									results.error++;
 									tests[testindex].result = -2;
@@ -276,7 +310,7 @@
 									results.passed++;
 									tests[testindex].result = 1;
 								}
-								else if (result.match("testresult Failed")) {
+								else { // result.match("testresult Failed"), also handles case where test returns a dump
 									results.failed++;
 									tests[testindex].result = -1;
 								}
@@ -295,6 +329,17 @@
 							function getTestResult(index) {
 								testindex = index;
 								if (bRunning){
+									teststart = new Date();
+									$j("##"+tests[index].id+"_"+tests[index].testmethod+" .testtime").html("0s");
+									timer = setInterval(function(){
+										var diff = (new Date()) - teststart, timeel = $j("##"+tests[index].id+"_"+tests[index].testmethod+" .testtime");
+										
+										if (diff < 60000)
+											timeel.html(Math.floor(diff / 1000).toString() + "s");
+										else
+											timeel.html((Math.floor(diff / 6000) / 10).toString() + "m");
+									},1000);
+									
 									$j.ajax({
 										success:displayTestResult,
 										url:tests[index].url,
@@ -305,20 +350,20 @@
 							
 							function playTests(){
 								bRunning = 1;
-								$j("##action-play-pause").removeClass("ui-icon-play").addClass("ui-icon-pause");
+								$j("##action-play-pause .ui-icon-play").removeClass("ui-icon-play").addClass("ui-icon-pause");
 								$j("##baseurl,##testset").attr("disabled",true);
 								baseurl = $j("##baseurl").val();
 								getTestResult(getNextTest());
 							};
 							function pauseTests(){
 								bRunning = 0;
-								$j("##action-play-pause").removeClass("ui-icon-pause").addClass("ui-icon-play");
+								$j("##action-play-pause .ui-icon-pause").removeClass("ui-icon-pause").addClass("ui-icon-play");
 								$j("##baseurl,##testset").attr("disabled",false);
 							};
 							function finishTests(){
 								bRunning = 0;
 								$j("##action-play-pause")
-									.removeClass("ui-icon-pause").addClass("ui-icon-play")
+									.find(".ui-icon-pause").removeClass("ui-icon-pause").addClass("ui-icon-play").end()
 									.removeClass("ui-state-default").addClass('ui-state-disabled');
 								$j("##baseurl,##testset").attr("disabled",false);
 							};
@@ -340,7 +385,7 @@
 							
 						$j(function(){
 							
-							$j("##action-play-pause").bind("click",function(){
+							$j("##action-play-pause").on("click",function(){
 								if (bRunning) pauseTests();	else playTests();
 								return false;
 							}).hover(function(){
@@ -351,7 +396,7 @@
 							
 							$j.fn.log = function() { console.log(this); return this; };
 							
-							$j("##action-restart").bind("click",function(){
+							$j("##action-restart").on("click",function(){
 								if (bRunning) pauseTests();
 								resetTests();
 								return false;

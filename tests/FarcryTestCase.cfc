@@ -6,6 +6,7 @@
 		<cfset this.aPinUsers = arraynew(1) />
 		<cfset this.aPinScopes = arraynew(1) />
 		<cfset this.aPinCategories = arraynew(1) />
+		<cfset this.qPinNavigation = querynew("empty") />
 	</cffunction>
 
 	<cffunction name="tearDown" returntype="void" access="public">
@@ -21,6 +22,9 @@
 		
 		<!--- Remove dirty categories --->
 		<cfset revertCategories() />
+		
+		<!--- Revert dirty navigation tree --->
+		<cfset revertNavigation() />
 	</cffunction>
 	
 	
@@ -30,7 +34,7 @@
 		<cfset var o = application.fapi.getContentType(arguments.typename) />
 		<cfset var stObj = duplicate(arguments) />
 		<cfset var lCategories = "" />
-		<cfset var oCategory = createobject("component","farcry.core.packages.farcry.category") />
+		<cfset var oCategory = "" />
 		
 		<cfparam name="stObj.objectid" default="#createuuid()#" />
 		
@@ -41,7 +45,10 @@
 		
 		<cfset pinObjects(typename=arguments.typename,objectid=stObj.objectid) />
 		<cfset o.setData(stProperties=stObj) />
-		<cfset oCategory.assignCategories(stObj.objectid,lCategories) />
+		
+		<cfif len(lCategories)>
+			<cfset createobject("component","farcry.core.packages.farcry.category").assignCategories(stObj.objectid,lCategories) />
+		</cfif>
 		
 		<cfreturn stObj />
 	</cffunction>
@@ -60,6 +67,21 @@
 		<cfset pinCategories(arguments.categoryid) />
 		<cfset oCategory.addCategory(arguments.categoryid,arguments.categorylabel,arguments.parentid) />
 		<cfset oCategory.setAlias(arguments.categoryid,arguments.alias) />
+		
+		<cfreturn duplicate(arguments) />
+	</cffunction>
+	
+	<cffunction name="createTemporaryNavigation" access="package" returntype="struct" output="false" hint="Creates the specified navigation node and adds it the the pinned list">
+		<cfargument name="parentid" type="uuid" required="false" default="#application.catid.root#" hint="The parent of the new category" />
+		
+		<cfset var stObj = structnew() />
+		
+		<cfparam name="arguments.objectid" default="#createuuid()#" />
+		<cfparam name="arguments.typename" default="dmNavigation" />
+		
+		<cfset pinNavigation() />
+		<cfset stObj = createTemporaryObject(argumentCollection=arguments) />
+		<cfset application.factory.oTree.setYoungest(parentid=arguments.parentid,objectid=stObj.objectid,objectname=stObj.label,typename="dmNavigation") />
 		
 		<cfreturn duplicate(arguments) />
 	</cffunction>
@@ -210,6 +232,79 @@
 		<cfloop from="1" to="#arraylen(this.aPinCategories)#" index="i">
 			<cfset revertCategory(this.aPinCategories[i]) />
 		</cfloop>
+	</cffunction>
+	
+	
+	<cffunction name="pinNavigation" access="package" returntype="void" output="false" hint="Adds the navigation tree to the dirty list, to be reverted on tearDown">
+		
+		<cfif this.qPinNavigation.recordcount eq 0>
+			<cfquery datasource="#application.dsn#" name="this.qPinNavigation">
+				select	*
+				from	nested_tree_objects
+				where	typename='dmNavigation'
+			</cfquery>
+		</cfif>
+	</cffunction>
+	
+	<cffunction name="revertNavigation" access="package" returntype="void" output="false" hint="Reverts the navigation tree">
+		<cfset var q = "" />
+		<cfset var qPin = "" />
+		
+		<cfif this.qPinNavigation.recordcount>
+			<cfset qPin = this.qPinNavigation />
+			<cfloop query="qPin">
+				<cfquery datasource="#application.dsn#" name="q">
+					select	* 
+					from 	nested_tree_objects 
+					where 	objectid='#qPin.objectid#'
+							and typename='#qPin.typename#'
+				</cfquery>
+				
+				<cfif q.recordcount and (q.ParentID neq qPin.ParentID or q.ObjectName neq qPin.ObjectName or q.Nleft neq qPin.Nleft or q.Nright neq qPin.Nright or q.Nlevel neq qPin.Nlevel)>
+					<!--- Entry was changed and needs to be reverted --->
+					<cfquery datasource="#application.dsn#">
+						update	nested_tree_objects 
+						set		ParentID='#qPin.ParentID#',
+								ObjectName='#qPin.ObjectName#', 
+								Nleft=#qPin.Nleft#, 
+								Nright=#qPin.Nright#, 
+								Nlevel=#qPin.Nlevel#
+						where	objectid='#qPin.objectid#'
+								and typename='#qPin.typename#'
+					</cfquery>
+				<cfelseif not q.recordcount>
+					<!--- Entry was removed and needs to be readded --->
+					<cfquery datasource="#application.dsn#">
+						insert into nested_tree_objects 
+								(ObjectID, ParentID, ObjectName, TypeName, Nleft, Nright, Nlevel)
+						values	('#qPin.ObjectID#', 
+								'#qPin.ParentID#', 
+								'#qPin.ObjectName#', 
+								'#qPin.TypeName#', 
+								#qPin.Nleft#, 
+								#qPin.Nright#, 
+								#qPin.Nlevel#)
+					</cfquery>
+				</cfif>
+			</cfloop>
+			
+			<cfquery datasource="#application.dsn#" name="q">
+				select	*
+				from	nested_tree_objects
+				where	typename=<cfqueryparam cfsqltype="cf_sql_varchar" value="dmNavigation" />
+			</cfquery>
+			
+			<cfloop query="q">
+				<cfif not listfind(valuelist(qPin.objectid),q.objectid)>
+					<!--- Entry was added and needs to be removed --->
+					<cfquery datasource="#application.dsn#">
+						delete from nested_tree_objects
+						where	objectid='#q.objectid#'
+								and typename='#q.typename#'
+					</cfquery>
+				</cfif>
+			</cfloop>
+		</cfif>
 	</cffunction>
 	
 	
@@ -493,11 +588,17 @@
 		<cfargument name="value" type="string" required="false" hint="The value to check for" />
 		<cfargument name="message" type="string" required="false" default="" hint="The message to record on failure" />
 		
-		<cfset var curval = evaluate(arguments.variable) />
-		
-		<cfif structkeyexists(arguments,"value") and curval neq arguments.value>
-			<cfinvoke method="fail" message="#arguments.message#" />
-		</cfif>
+		<cftry>
+			<cfset var curval = evaluate(arguments.variable) />
+			
+			<cfif structkeyexists(arguments,"value") and curval neq arguments.value>
+				<cfinvoke method="fail" message="#arguments.message#" />
+			</cfif>
+			
+			<cfcatch>
+				<cfinvoke method="fail" message="#arguments.message#" />
+			</cfcatch>
+		</cftry>
 		
 		<cfreturn true />
 	</cffunction>

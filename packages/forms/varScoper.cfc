@@ -3,8 +3,49 @@
 				ftType="list" ftListData="getLocations" />
 	<cfproperty name="types" type="string" ftLabel="Types"
 				ftType="list" ftList="coapi:COAPI Components,webskins:Webskins,other:Other" ftSelectMultiple="true" />
-				
-				
+	
+	<cfset this.customTags = arraynew(1) />
+	<cfset arrayappend(this.customTags,"admin:loopwebtop,item") />
+	<cfset arrayappend(this.customTags,"admin:loopwebtop,class") />
+	<cfset arrayappend(this.customTags,"ca:displayFilter,r_stFilter") />
+	<cfset arrayappend(this.customTags,"extjs:bubbleOutput,index") />
+	<cfset arrayappend(this.customTags,"extjs:bubbleOutput,bubble") />
+	<cfset arrayappend(this.customTags,"ft:button,r_stButton") />
+	<cfset arrayappend(this.customTags,"ft:farcryButton,r_stButton") />
+	<cfset arrayappend(this.customTags,"ft:object,r_stFields") />
+	<cfset arrayappend(this.customTags,"ft:object,r_stPrefix") />
+	<cfset arrayappend(this.customTags,"ft:objectadmin,r_oTypeAdmin") />
+	<cfset arrayappend(this.customTags,"ft:processformobjects,r_stProperties") />
+	<cfset arrayappend(this.customTags,"ft:processformobjects,r_stObject") />
+	<cfset arrayappend(this.customTags,"ft:validateFormObjects,r_stProperties") />
+	<cfset arrayappend(this.customTags,"ft:validateFormObjects,r_stObject") />
+	<cfset arrayappend(this.customTags,"misc:diff,diff") />
+	<cfset arrayappend(this.customTags,"misc:map,result") />
+	<cfset arrayappend(this.customTags,"misc:map,index") />
+	<cfset arrayappend(this.customTags,"misc:map,sendback") />
+	<cfset arrayappend(this.customTags,"misc:map,value") />
+	<cfset arrayappend(this.customTags,"misc:sort,result") />
+	<cfset arrayappend(this.customTags,"misc:sort,value1") />
+	<cfset arrayappend(this.customTags,"misc:sort,value2") />
+	<cfset arrayappend(this.customTags,"misc:sort,sendback") />
+	<cfset arrayappend(this.customTags,"sec:checkPermission,result") />
+	<cfset arrayappend(this.customTags,"sec:checkRole,result") />
+	<cfset arrayappend(this.customTags,"skin:buildLink,r_url") />
+	<cfset arrayappend(this.customTags,"skin:cache,cacheRead") />
+	<cfset arrayappend(this.customTags,"skin:multiPageNav,r_qlinks") />
+	<cfset arrayappend(this.customTags,"skin:multiPageToc,r_qlinks") />
+	<cfset arrayappend(this.customTags,"skin:pagination,r_stObject") />
+	<cfset arrayappend(this.customTags,"skin:relatedcontent,r_html") />
+	<cfset arrayappend(this.customTags,"skin:relatedLinks,r_qlinks") />
+	<cfset arrayappend(this.customTags,"skin:secondaryNav,r_navQuery") />
+	<cfset arrayappend(this.customTags,"skin:view,r_html") />
+	<cfset arrayappend(this.customTags,"skin:view,r_objectid") />
+	<cfset arrayappend(this.customTags,"wiz:object,r_stWizard") />
+	<cfset arrayappend(this.customTags,"wiz:object,r_stFields") />
+	<cfset arrayappend(this.customTags,"wiz:processwizard,r_stWizard") />
+	<cfset arrayappend(this.customTags,"wiz:processwizardobjects,r_stProperties") />
+	<cfset arrayappend(this.customTags,"wiz:wizard,r_stWizard") />
+	
 	<cffunction name="getLocations" access="public" output="false" returntype="string">
 		<cfset var result = ":-- select location --" />
 		<cfset var name = "" />
@@ -46,70 +87,27 @@
 		<cfset var thistype = "" />
 		<cfset var qResults = querynew("filename,function,variable,context,linenumber","varchar,varchar,varchar,varchar,integer") />
 		
-		<cfset var customTags = arraynew(1) />
-		
-		<cfset arrayappend(customTags,"admin:loopwebtop,item") />
-		<cfset arrayappend(customTags,"admin:loopwebtop,class") />
-		<cfset arrayappend(customTags,"ca:displayFilter,r_stFilter") />
-		<cfset arrayappend(customTags,"extjs:bubbleOutput,index") />
-		<cfset arrayappend(customTags,"extjs:bubbleOutput,bubble") />
-		<cfset arrayappend(customTags,"ft:button,r_stButton") />
-		<cfset arrayappend(customTags,"ft:farcryButton,r_stButton") />
-		<cfset arrayappend(customTags,"ft:object,r_stFields") />
-		<cfset arrayappend(customTags,"ft:object,r_stPrefix") />
-		<cfset arrayappend(customTags,"ft:objectadmin,r_oTypeAdmin") />
-		<cfset arrayappend(customTags,"ft:processformobjects,r_stProperties") />
-		<cfset arrayappend(customTags,"ft:processformobjects,r_stObject") />
-		<cfset arrayappend(customTags,"ft:validateFormObjects,r_stProperties") />
-		<cfset arrayappend(customTags,"ft:validateFormObjects,r_stObject") />
-		<cfset arrayappend(customTags,"misc:diff,diff") />
-		<cfset arrayappend(customTags,"misc:map,result") />
-		<cfset arrayappend(customTags,"misc:map,index") />
-		<cfset arrayappend(customTags,"misc:map,sendback") />
-		<cfset arrayappend(customTags,"misc:map,value") />
-		<cfset arrayappend(customTags,"misc:sort,result") />
-		<cfset arrayappend(customTags,"misc:sort,value1") />
-		<cfset arrayappend(customTags,"misc:sort,value2") />
-		<cfset arrayappend(customTags,"misc:sort,sendback") />
-		<cfset arrayappend(customTags,"sec:checkPermission,result") />
-		<cfset arrayappend(customTags,"sec:checkRole,result") />
-		<cfset arrayappend(customTags,"skin:buildLink,r_url") />
-		<cfset arrayappend(customTags,"skin:cache,cacheRead") />
-		<cfset arrayappend(customTags,"skin:multiPageNav,r_qlinks") />
-		<cfset arrayappend(customTags,"skin:multiPageToc,r_qlinks") />
-		<cfset arrayappend(customTags,"skin:pagination,r_stObject") />
-		<cfset arrayappend(customTags,"skin:relatedcontent,r_html") />
-		<cfset arrayappend(customTags,"skin:relatedLinks,r_qlinks") />
-		<cfset arrayappend(customTags,"skin:secondaryNav,r_navQuery") />
-		<cfset arrayappend(customTags,"skin:view,r_html") />
-		<cfset arrayappend(customTags,"skin:view,r_objectid") />
-		<cfset arrayappend(customTags,"wiz:object,r_stWizard") />
-		<cfset arrayappend(customTags,"wiz:object,r_stFields") />
-		<cfset arrayappend(customTags,"wiz:processwizard,r_stWizard") />
-		<cfset arrayappend(customTags,"wiz:processwizardobjects,r_stProperties") />
-		<cfset arrayappend(customTags,"wiz:wizard,r_stWizard") />
-		
 		<!--- Var check coapi components --->
 		<cfif listcontains(arguments.types,"coapi")>
 			<cfswitch expression="#arguments.locations#">
 				<cfcase value="core">
 					<cfloop list="#coapitypes#" index="thistype">
 						<cfif directoryexists(expandpath("/farcry/core/packages/#thistype#"))>
-							<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/core/packages/#thistype#"),true,"","",customTags)) />
+							<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/core/packages/#thistype#"),true,"","",this.customTags)) />
 						</cfif>
 					</cfloop>
 				</cfcase>
 				<cfcase value="project">
 					<cfloop list="#coapitypes#" index="thistype">
 						<cfif directoryexists(expandpath("/farcry/projects/#application.projectDirectoryName#/packages/#thistype#"))>
-							<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/projects/#application.projectDirectoryName#/packages/#thistype#"),true,"","",customTags)) />
+							<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/projects/#application.projectDirectoryName#/packages/#thistype#"),true,"","",this.customTags)) />
 						</cfif>
 					</cfloop>
 				</cfcase>
 				<cfdefaultcase>
 					<cfloop list="#coapitypes#" index="thistype">
 						<cfif directoryexists(expandpath("/farcry/plugins/#arguments.locations#/packages/#thistype#"))>
-							<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/plugins/#arguments.locations#/packages/#thistype#"),true,"","",customTags)) />
+							<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/plugins/#arguments.locations#/packages/#thistype#"),true,"","",this.customTags)) />
 						</cfif>
 					</cfloop>
 				</cfdefaultcase>
@@ -120,13 +118,13 @@
 		<cfif listcontains(arguments.types,"other")>
 			<cfswitch expression="#arguments.locations#">
 				<cfcase value="core">
-					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/core"),true,coapitypes,"",customTags)) />
+					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/core"),true,coapitypes,"",this.customTags)) />
 				</cfcase>
 				<cfcase value="project">
-					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/projects/#application.projectDirectoryName#"),true,coapitypes,"",customTags)) />
+					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/projects/#application.projectDirectoryName#"),true,coapitypes,"",this.customTags)) />
 				</cfcase>
 				<cfdefaultcase>
-					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/plugins/#arguments.locations#"),true,coapitypes,"",customTags)) />
+					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/plugins/#arguments.locations#"),true,coapitypes,"",this.customTags)) />
 				</cfdefaultcase>
 			</cfswitch>
 		</cfif>
@@ -135,13 +133,13 @@
 		<cfif listcontains(arguments.types,"webskins")>
 			<cfswitch expression="#arguments.locations#">
 				<cfcase value="core">
-					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/core/webskin"),true,"","",customTags,true)) />
+					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/core/webskin"),true,"","",this.customTags,true)) />
 				</cfcase>
 				<cfcase value="project">
-					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/projects/#application.projectDirectoryName#/webskin"),true,"","",customTags,true)) />
+					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/projects/#application.projectDirectoryName#/webskin"),true,"","",this.customTags,true)) />
 				</cfcase>
 				<cfdefaultcase>
-					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/plugins/#arguments.locations#/webskin"),true,"","",customTags,true)) />
+					<cfset addResultsToQuery(qResults,processDirectory(expandpath("/farcry/plugins/#arguments.locations#/webskin"),true,"","",this.customTags,true)) />
 				</cfdefaultcase>
 			</cfswitch>
 		</cfif>

@@ -5,27 +5,13 @@
 <cfimport taglib="/farcry/core/tags/webskin" prefix="skin" />
 
 <cfset setLock(stObj=stObj,locked=true) />
-			
-<cfif structkeyexists(url,"iframe")>
-	<cfset onExitProcess = structNew() />
-	<cfset onExitProcess.Type = "HTML" />
-	<cfsavecontent variable="onExitProcess.content">
-		<cfoutput>
-			<script type="text/javascript">
-				<!--- parent.location.reload(); --->
-				parent.location = parent.location;
-				parent.closeDialog();		
-			</script>
-		</cfoutput>
-	</cfsavecontent>
-</cfif>
 
-<ft:processForm action="Save" Exit="true">
+<ft:processForm action="Save" url="refresh">
 	<ft:processFormObjects typename="#stobj.typename#" />
 	<cfset setLock(objectid=stObj.objectid,locked=false) />
 </ft:processForm>
 
-<ft:processForm action="Cancel" Exit="true" >
+<ft:processForm action="Cancel" url="refresh" >
 	<cfset setLock(objectid=stObj.objectid,locked=false) />
 </ft:processForm>
 

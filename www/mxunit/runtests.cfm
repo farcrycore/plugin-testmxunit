@@ -385,7 +385,7 @@
 							
 						$j(function(){
 							
-							$j("##action-play-pause").on("click",function(){
+							$j("##action-play-pause").click(function(){
 								if (bRunning) pauseTests();	else playTests();
 								return false;
 							}).hover(function(){
@@ -396,7 +396,7 @@
 							
 							$j.fn.log = function() { console.log(this); return this; };
 							
-							$j("##action-restart").on("click",function(){
+							$j("##action-restart").click(function(){
 								if (bRunning) pauseTests();
 								resetTests();
 								return false;
